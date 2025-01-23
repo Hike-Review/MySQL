@@ -1,6 +1,6 @@
 --schema.sql
 
-CREAT DATABASE HikeReview;
+CREATE DATABASE IF NOT EXISTS HikeReview;
 
 USE HikeReview;
 
