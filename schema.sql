@@ -36,3 +36,12 @@ CREATE TABLE IF NOT EXISTS Reviews (
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE       -- check for valid id
 );
 -- if trail/user id is deleted, corresponding reviews are deleted
+
+-- table for group info
+CREATE TABLE IF NOT EXISTS Groups (
+    group_id INT AUTO_INCREMENT PRIMARY KEY,       -- create unique id
+    group_name VARCHAR(255) NOT NULL,              
+    group_description TEXT,                        
+    created_by INT NOT NULL,                      
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+);
