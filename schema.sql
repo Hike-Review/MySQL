@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS Hikes(
     location VARCHAR(255),
     difficulty ENUM('Easy', 'Moderate', 'Hard') NOT NULL,
     distance FLOAT,
+    duration FLOAT,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
