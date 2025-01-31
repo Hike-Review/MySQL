@@ -21,8 +21,10 @@ CREATE TABLE IF NOT EXISTS Hikes(
     difficulty ENUM('Easy', 'Moderate', 'Hard') NOT NULL,
     distance FLOAT,
     duration FLOAT,
-    start_coordinates VARCHAR(30) NOT NULL,     -- format: "lat,lng"
-    end_coordinates VARCHAR(30) NOT NULL,       -- format: "lat,lng" 
+    start_lat DECIMAL(9,6) NOT NULL,
+    start_lng DECIMAL(9,6) NOT NULL,
+    end_lat DECIMAL(9,6) NOT NULL,
+    end_lng DECIMAL(9,6) NOT NULL,
     tags VARCHAR (100),
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -32,7 +34,8 @@ CREATE TABLE IF NOT EXISTS Hikes(
 CREATE TABLE IF NOT EXISTS RoutePoints (
     point_id INT AUTO_INCREMENT PRIMARY KEY,
     trail_id INT NOT NULL,
-    point_coordinates VARCHAR(30) NOT NULL,     -- format: "lat,lng"
+    latitude DECIMAL(9,6) NOT NULL,
+    longitude DECIMAL(9,6) NOT NULL,
     point_order INT NOT NULL,                   -- to keep track of the sequence
     FOREIGN KEY (trail_id) REFERENCES Hikes(trail_id) ON DELETE CASCADE
 );
