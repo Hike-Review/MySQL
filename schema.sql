@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS Users (
 CREATE TABLE IF NOT EXISTS Hikes(
     trail_id INT AUTO_INCREMENT PRIMARY KEY,    -- create unique id
     trail_name VARCHAR(100) NOT NULL,
-    location VARCHAR(255),
     difficulty ENUM('Easy', 'Moderate', 'Hard') NOT NULL,
+    rating FLOAT,
     distance FLOAT,
     duration FLOAT,
     start_lat DECIMAL(9,6) NOT NULL,
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS Hikes(
     end_lng DECIMAL(9,6) NOT NULL,
     tags VARCHAR (100),
     description TEXT,
+    creator_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -58,7 +59,7 @@ CREATE TABLE IF NOT EXISTS Groups (
     group_name VARCHAR(255) NOT NULL,              
     group_description TEXT,                        
     created_by INT NOT NULL,                      
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- table for storing user favorite hikes
