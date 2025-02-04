@@ -9,7 +9,7 @@ CORS(app)
 
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = '---'
+app.config['MYSQL_PASSWORD'] = 'securePassword!@#123'
 app.config['MYSQL_DB'] = 'hikereview'
 mysql = MySQL(app)
 
@@ -33,12 +33,13 @@ class User:
 
 # Hike Datastructure
 class Hike:
-    def __init__(self, trail_id, trail_name, location, difficulty, distance, description, created_at):
+    def __init__(self, trail_id, trail_name, location, difficulty, distance, duration, description, created_at):
         self.trail_id = trail_id
         self.trail_name = trail_name
         self.location = location
         self.difficulty = difficulty
         self.distance = distance
+        self.duration = duration
         self.description = description
         self.created_at = created_at
 
@@ -49,6 +50,7 @@ class Hike:
             'location': self.location,
             'difficulty': self.difficulty,
             'distance': self.distance,
+            'duration': self.duration,
             'description': self.description,
             'created_at': self.created_at
         }
@@ -78,7 +80,7 @@ def getHikeData():
     hikes = cursor.fetchall()
     hikeRecords = []
     for hike in hikes:
-        hikeObj = Hike(str(hike[0]), str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]))
+        hikeObj = Hike(str(hike[0]), str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), str(hike[7]))
         hikeRecords.append(hikeObj)
     hikeDictionaryList = [record.to_dict() for record in hikeRecords]
     cursor.close()
