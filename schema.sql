@@ -1,4 +1,5 @@
 -- schema.sql
+-- deployed using AWS RDS
 
 CREATE DATABASE IF NOT EXISTS hikereviewdb;
 
