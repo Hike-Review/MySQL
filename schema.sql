@@ -1,8 +1,8 @@
 -- schema.sql
 
-CREATE DATABASE IF NOT EXISTS HikeReview;
+CREATE DATABASE IF NOT EXISTS hikereviewdb;
 
-USE HikeReview;
+USE hikereviewdb;
 
 -- table to store user info
 CREATE TABLE IF NOT EXISTS Users (
