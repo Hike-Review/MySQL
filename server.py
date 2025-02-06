@@ -8,16 +8,16 @@ app = Flask(__name__)
 CORS(app)
 
 # Test Local Database
-# app.config['MYSQL_HOST'] = 'localhost'
-# app.config['MYSQL_USER'] = 'root'
-# app.config['MYSQL_PASSWORD'] = 'securePassword!@#123'
-# app.config['MYSQL_DB'] = 'hikereview'
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'securePassword!@#123'
+app.config['MYSQL_DB'] = 'hikereview'
 
 # Main AWS Database
-app.config['MYSQL_HOST'] = 'hikereview.cbi8ecsmy7wx.us-west-1.rds.amazonaws.com'
-app.config['MYSQL_USER'] = 'admin'
-app.config['MYSQL_PASSWORD'] = 'CSE115A#HikeReview'
-app.config['MYSQL_DB'] = 'hikereviewdb'
+# app.config['MYSQL_HOST'] = 'hikereview.cbi8ecsmy7wx.us-west-1.rds.amazonaws.com'
+# app.config['MYSQL_USER'] = 'admin'
+# app.config['MYSQL_PASSWORD'] = 'CSE115A#HikeReview'
+# app.config['MYSQL_DB'] = 'hikereviewdb'
 mysql = MySQL(app)
 
 # User Datasctructure
@@ -38,9 +38,21 @@ class User:
             'created_at': self.created_at
         }
 
+# Rout Points Datastructure
+class routePoint:
+    def __init__(self, lat, lng):
+        self.lat = lat
+        self.lng = lng
+
+    def to_dict(self):
+        return {
+            'lat': self.lat,
+            'lng': self.lng
+        }
+
 # Hike Datastructure
 class Hike:
-    def __init__(self, trail_id, trail_name, difficulty, rating, distance, duration, start_lat, start_lng, end_lat, end_lng, tags, description, creator_id, created_at):
+    def __init__(self, trail_id, trail_name, difficulty, rating, distance, duration, start_lat, start_lng, end_lat, end_lng, tags, description, creator_id, created_at, routing_points):
         self.trail_id = trail_id
         self.trail_name = trail_name
         self.difficulty = difficulty
@@ -55,6 +67,7 @@ class Hike:
         self.description = description
         self.creator_id = creator_id
         self.created_at = created_at
+        self.routing_points = routing_points
 
     def to_dict(self):
         return {
@@ -71,7 +84,8 @@ class Hike:
             'tags': self.tags,
             'description': self.description,
             'creator_id': self.creator_id,
-            'created_at': self.created_at
+            'created_at': self.created_at,
+            'routing_points': [(point.lat, point.lng) for point in self.routing_points]
         }
 
 # Setup and route pages
@@ -95,13 +109,32 @@ def getUserData():
 @app.route("/hikes")
 def getHikeData():
     cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM hikes')
+    cursor.execute(
+        'SELECT *' + 
+        'FROM hikes'
+    )
     hikes = cursor.fetchall()
+
     hikeRecords = []
     for hike in hikes:
-        hikeObj = Hike(str(hike[0]), str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), str(hike[7]),
-                        str(hike[8]), str(hike[9]), str(hike[10]), str(hike[11]), str(hike[12]), str(hike[13]))
+        hikeID = str(hike[0])
+
+        # Collect all routing nodes for this hike
+        cursor.execute(
+            'SELECT latitude, longitude ' +
+            'FROM routepoints ' +
+            'WHERE trail_id = %s ' + 
+            'ORDER BY point_order', (hikeID,)
+        )
+        routePoints = cursor.fetchall()
+        
+        # Create list of point objects for routing nodes
+        routingPointRecords = [routePoint(str(point[0]), str(point[1])) for point in routePoints]
+
+        # Create new hike objects
+        hikeObj = Hike(hikeID, str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), str(hike[7]), str(hike[8]), str(hike[9]), str(hike[10]), str(hike[11]), str(hike[12]), str(hike[13]), routingPointRecords)
         hikeRecords.append(hikeObj)
+
     hikeDictionaryList = [record.to_dict() for record in hikeRecords]
     cursor.close()
     return jsonify(hikeDictionaryList)
