@@ -7,6 +7,12 @@ app = Flask(__name__)
 # Enable CORS for the entire app
 CORS(app)
 
+# Test Local Database
+# app.config['MYSQL_HOST'] = 'localhost'
+# app.config['MYSQL_USER'] = 'root'
+# app.config['MYSQL_PASSWORD'] = 'securePassword!@#123'
+# app.config['MYSQL_DB'] = 'hikereview'
+
 # Main AWS Database
 app.config['MYSQL_HOST'] = 'hikereview.cbi8ecsmy7wx.us-west-1.rds.amazonaws.com'
 app.config['MYSQL_USER'] = 'admin'
@@ -37,7 +43,6 @@ class Hike:
     def __init__(self, trail_id, trail_name, difficulty, rating, distance, duration, start_lat, start_lng, end_lat, end_lng, tags, description, creator_id, created_at):
         self.trail_id = trail_id
         self.trail_name = trail_name
-        self.location = location
         self.difficulty = difficulty
         self.rating = rating
         self.distance = distance
@@ -55,11 +60,17 @@ class Hike:
         return {
             'trail_id': self.trail_id,
             'trail_name': self.trail_name,
-            'location': self.location,
             'difficulty': self.difficulty,
+            'rating': self.rating,
             'distance': self.distance,
             'duration': self.duration,
+            'start_lat': self.start_lat, 
+            'start_lng': self.start_lng,
+            'end_lat': self.end_lat, 
+            'end_lng': self.end_lng, 
+            'tags': self.tags,
             'description': self.description,
+            'creator_id': self.creator_id,
             'created_at': self.created_at
         }
 
@@ -89,7 +100,7 @@ def getHikeData():
     hikeRecords = []
     for hike in hikes:
         hikeObj = Hike(str(hike[0]), str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), str(hike[7]),
-                        str(hike[8]), str(hike[9]), str(hike[10]), str(hike[11]), str(hike[12]), str(hike[13]), str(hike[14]))
+                        str(hike[8]), str(hike[9]), str(hike[10]), str(hike[11]), str(hike[12]), str(hike[13]))
         hikeRecords.append(hikeObj)
     hikeDictionaryList = [record.to_dict() for record in hikeRecords]
     cursor.close()
