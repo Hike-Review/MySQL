@@ -1,0 +1,55 @@
+{
+  "routes": [
+    {
+      "legs": [
+        {
+          "polyline": {
+            "encodedPolyline": "kpkcFrhchV@@N?D?N??g@P?Z?b@Ah@AP?HAB?B??m@?k@@q@@e@A_@AYAa@@Y?G@E@E@GDIDGFGDCDCDAFAH?L?H?DADCBC@E@EBQ?g@@[Bg@BY?G@M?M?IH@Bg@?WlA@"
+          },
+          "steps": [
+            {
+              "polyline": {
+                "encodedPolyline": "kpkcFrhchV@@N?D?N?"
+              }
+            },
+            {
+              "polyline": {
+                "encodedPolyline": "cokcFthchV?g@"
+              }
+            },
+            {
+              "polyline": {
+                "encodedPolyline": "cokcFlgchVP?Z?b@Ah@AP?HAB?B?"
+              }
+            },
+            {
+              "polyline": {
+                "encodedPolyline": "cjkcFfgchV?m@?k@@q@@e@A_@AYAa@@Y?G@E@E@GDIDGFGDCDCDAFAH?L?H?DADCBC@E@EBQ"
+              }
+            },
+            {
+              "polyline": {
+                "encodedPolyline": "ufkcFtzbhV?g@@[Bg@BY?G@M?M?I"
+              }
+            },
+            {
+              "polyline": {
+                "encodedPolyline": "ifkcF`ubhVH@"
+              }
+            },
+            {
+              "polyline": {
+                "encodedPolyline": "_fkcFbubhVBg@?WlA@"
+              }
+            }
+          ]
+        }
+      ],
+      "distanceMeters": 504,
+      "duration": "411s",
+      "polyline": {
+        "encodedPolyline": "kpkcFrhchV@@N?D?N??g@P?Z?b@Ah@AP?HAB?B??m@?k@@q@@e@A_@AYAa@@Y?G@E@E@GDIDGFGDCDCDAFAH?L?H?DADCBC@E@EBQ?g@@[Bg@BY?G@M?M?IH@Bg@?WlA@"
+      }
+    }
+  ]
+}
