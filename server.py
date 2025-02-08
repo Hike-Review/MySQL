@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 from flask_cors import CORS
 
@@ -7,17 +7,11 @@ app = Flask(__name__)
 # Enable CORS for the entire app
 CORS(app)
 
-# Test Local Database
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'securePassword!@#123'
-app.config['MYSQL_DB'] = 'hikereview'
-
 # Main AWS Database
-# app.config['MYSQL_HOST'] = 'hikereview.cbi8ecsmy7wx.us-west-1.rds.amazonaws.com'
-# app.config['MYSQL_USER'] = 'admin'
-# app.config['MYSQL_PASSWORD'] = 'CSE115A#HikeReview'
-# app.config['MYSQL_DB'] = 'hikereviewdb'
+app.config['MYSQL_HOST'] = 'hikereview.cbi8ecsmy7wx.us-west-1.rds.amazonaws.com'
+app.config['MYSQL_USER'] = 'admin'
+app.config['MYSQL_PASSWORD'] = '---'
+app.config['MYSQL_DB'] = 'hikereviewdb'
 mysql = MySQL(app)
 
 # User Datasctructure
@@ -89,11 +83,11 @@ class Hike:
         }
 
 # Setup and route pages
-@app.route("/")
+@app.route('/')
 def home():
-    return "Hikereview API"
+    return 'Hikereview API'
 
-@app.route("/users")
+@app.route('/users')
 def getUserData():
     cursor = mysql.connection.cursor()
     cursor.execute('SELECT * FROM users')
@@ -106,13 +100,18 @@ def getUserData():
     cursor.close()
     return jsonify(userDictionaryList)
 
-@app.route("/hikes")
+@app.route('/hikes', methods=['GET'])
 def getHikeData():
+    difficulty = request.args.get('difficulty', default='', type=str)
     cursor = mysql.connection.cursor()
-    cursor.execute(
-        'SELECT *' + 
-        'FROM hikes'
-    )
+
+    hikeQuery = 'SELECT * FROM Hikes'
+    if (difficulty):
+        hikeQuery +=  ' WHERE difficulty = %s'
+        cursor.execute(hikeQuery, (difficulty,))
+    else:
+        cursor.execute(hikeQuery)
+
     hikes = cursor.fetchall()
 
     hikeRecords = []
@@ -122,7 +121,7 @@ def getHikeData():
         # Collect all routing nodes for this hike
         cursor.execute(
             'SELECT latitude, longitude ' +
-            'FROM routepoints ' +
+            'FROM RoutePoints ' +
             'WHERE trail_id = %s ' + 
             'ORDER BY point_order', (hikeID,)
         )
@@ -141,3 +140,4 @@ def getHikeData():
 
 if __name__ == "__main__":
     app.run(debug=True)
+    # app.run(host="0.0.0.0", port=8000)
