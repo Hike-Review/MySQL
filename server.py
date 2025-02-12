@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 from flask_cors import CORS
 
@@ -12,15 +12,6 @@ app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
 mysql = MySQL(app)
-@app.route("/test-db")
-def test_db():
-    try:
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT 1")
-        cursor.close()
-        return "Database connection successful!", 200
-    except Exception as e:
-        return str(e), 500
 
 # User Datasctructure
 class User:
@@ -95,4 +86,4 @@ def getHikeData():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port)

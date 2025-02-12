@@ -12,12 +12,11 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     libssl-dev \
     libffi-dev \
-    libmariadb-dev
+    libmariadb-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements.txt before installing dependencies
 COPY requirements.txt /app/
-
-# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
@@ -30,4 +29,4 @@ EXPOSE 8080
 ENV FLASK_APP=server.py
 
 # Run the Flask application
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["flask", "run", "--host", "0.0.0.0", "--port", "8080"]
