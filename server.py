@@ -1,16 +1,16 @@
-from flask import Flask, jsonify
+import os
+from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 from flask_cors import CORS
 
 app = Flask(__name__)
 
-# Enable CORS for the entire app
 CORS(app)
 
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = '---'
-app.config['MYSQL_DB'] = 'hikereview'
+app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
+app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
+app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
 mysql = MySQL(app)
 
 # User Datasctructure
@@ -85,4 +85,5 @@ def getHikeData():
     return jsonify(hikeDictionaryList)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
+    app.run(host="0.0.0.0", port=port)
