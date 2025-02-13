@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 from flask_cors import CORS
@@ -8,10 +9,10 @@ app = Flask(__name__)
 CORS(app)
 
 # Main AWS Database
-app.config['MYSQL_HOST'] = 'hikereview.cbi8ecsmy7wx.us-west-1.rds.amazonaws.com'
-app.config['MYSQL_USER'] = 'admin'
-app.config['MYSQL_PASSWORD'] = '---'
-app.config['MYSQL_DB'] = 'hikereviewdb'
+app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
+app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
+app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
 mysql = MySQL(app)
 
 # User Datasctructure
@@ -23,7 +24,7 @@ class User:
         self.password_hash = password_hash
         self.created_at = created_at
 
-    def to_dict(self):
+    def toDictionary(self):
         return {
             'user_id': self.user_id,
             'username': self.username,
@@ -38,7 +39,7 @@ class routePoint:
         self.lat = lat
         self.lng = lng
 
-    def to_dict(self):
+    def toDictionary(self):
         return {
             'lat': self.lat,
             'lng': self.lng
@@ -63,7 +64,7 @@ class Hike:
         self.created_at = created_at
         self.routing_points = routing_points
 
-    def to_dict(self):
+    def toDictionary(self):
         return {
             'trail_id': self.trail_id,
             'trail_name': self.trail_name,
@@ -96,7 +97,7 @@ def getUserData():
     for user in users:
         userObj = User(str(user[0]), str(user[1]), str(user[2]), str(user[3]), str(user[4]))
         userRecords.append(userObj)
-    userDictionaryList = [record.to_dict() for record in userRecords]
+    userDictionaryList = [record.toDictionary() for record in userRecords]
     cursor.close()
     return jsonify(userDictionaryList)
 
@@ -134,10 +135,10 @@ def getHikeData():
         hikeObj = Hike(hikeID, str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), str(hike[7]), str(hike[8]), str(hike[9]), str(hike[10]), str(hike[11]), str(hike[12]), str(hike[13]), routingPointRecords)
         hikeRecords.append(hikeObj)
 
-    hikeDictionaryList = [record.to_dict() for record in hikeRecords]
+    hikeDictionaryList = [record.toDictionary() for record in hikeRecords]
     cursor.close()
     return jsonify(hikeDictionaryList)
 
 if __name__ == "__main__":
-    app.run(debug=True)
-    # app.run(host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
+    app.run(host="0.0.0.0", port=port)
