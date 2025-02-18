@@ -106,6 +106,34 @@ def register():
 
         try:
             cursor = mysql.connection.cursor()
+
+            # Check if username is already in database
+            cursor.execute(
+                'SELECT username ' +
+                'FROM users ' +
+                'WHERE username = %s ' + 
+                'LIMIT 1',
+                (username,)
+            )
+            existingUsername = cursor.fetchall()
+
+            if (existingUsername):
+                return jsonify({'message': 'Username already in use'}), 400
+
+            # Check if email is already in database
+            cursor.execute(
+                'SELECT email ' +  
+                'FROM users ' +
+                'WHERE email = %s' +
+                'LIMIT 1',
+                (email,)
+            )
+            existingUserEmail = cursor.fetchall()
+
+            if (existingUserEmail):
+                return jsonify({'message': 'Email already in use'}), 400
+
+            # Insert new user
             cursor.execute(
                 'INSERT INTO users ' +  
                 '(username, email, password_hash)' +
@@ -114,25 +142,40 @@ def register():
             mysql.connection.commit()
             cursor.close()
             return jsonify({'message': 'User created successfully', 'username': username}), 201
+
         except Exception as e:
+            print(e)
             return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=['POST'])
 def login():
     if (request.method == 'POST'):
         data = request.json
+        username = data['username']
         email = data['email']
         password = data['password']
 
         cur = mysql.connection.cursor()
-        cur.execute("SELECT user_id, username, password_hash FROM users WHERE email = %s", (email,))
+        cur.execute(
+            'SELECT username, email, password_hash ' +
+            'FROM users ' +
+            'WHERE username = %s' +
+            'OR email = %s' +
+            'LIMIT 1',
+            (username, email)
+        )
         user = cur.fetchone()
         cur.close()
 
-        if (user and check_password_hash(user[2], password)):
-            return jsonify({'message': 'Successful Login!', 'username': user[1]})
+        # Check if Username or email doesn't exist
+        if (user == None):
+            return jsonify({'message': 'Invalid username or email'}), 400
+
+        # Check if Password is correct
+        if (check_password_hash(user[2], password)):
+            return jsonify({'message': 'You are now logged in!', 'username': user[1]}), 200
         else:
-            return jsonify({'error': 'Invalid credentials'}), 401
+            return jsonify({'message': 'Invalid credentials'}), 401
 
 @app.route('/hikes', methods=['GET'])
 def getHikeData():
