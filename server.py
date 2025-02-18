@@ -2,16 +2,24 @@ import os
 from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
 CORS(app)
 
+# Test Database
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'securePassword!@#123'
+app.config['MYSQL_DB'] = 'hikereview'
+# app.config['SECRET_KEY'] = os.urandom(24) # Session management
+
 # Main AWS Database
-app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
-app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
-app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
+# app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
+# app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
+# app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
+# app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
 mysql = MySQL(app)
 
 # User Datasctructure
@@ -87,57 +95,86 @@ class Hike:
 def home():
     return 'Hikereview API'
 
-@app.route('/users')
-def getUserData():
-    cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM users')
-    users = cursor.fetchall()
-    userRecords = []
-    for user in users:
-        userObj = User(str(user[0]), str(user[1]), str(user[2]), str(user[3]), str(user[4]))
-        userRecords.append(userObj)
-    userDictionaryList = [record.toDictionary() for record in userRecords]
-    cursor.close()
-    return jsonify(userDictionaryList)
+@app.route('/register', methods=['POST'])
+def register():
+    if (request.method == 'POST'):
+        data = request.json
+        username = data['username']
+        email = data['email']
+        password = data['password']
+        hashedPassword = generate_password_hash(password)
+
+        try:
+            cursor = mysql.connection.cursor()
+            cursor.execute(
+                'INSERT INTO users ' +  
+                '(username, email, password_hash)' +
+                'VALUES (%s, %s, %s)',
+                (username, email, hashedPassword))
+            mysql.connection.commit()
+            cursor.close()
+            return jsonify({'message': 'User created successfully', 'username': username}), 201
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/login', methods=['POST'])
+def login():
+    if (request.method == 'POST'):
+        data = request.json
+        email = data['email']
+        password = data['password']
+
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT user_id, username, password_hash FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+        cur.close()
+
+        if (user and check_password_hash(user[2], password)):
+            return jsonify({'message': 'Successful Login!', 'username': user[1]})
+        else:
+            return jsonify({'error': 'Invalid credentials'}), 401
 
 @app.route('/hikes', methods=['GET'])
 def getHikeData():
-    difficulty = request.args.get('difficulty', default='', type=str)
-    cursor = mysql.connection.cursor()
+    if (request.method == 'GET'):
+        difficulty = request.args.get('difficulty', default='', type=str)
 
-    hikeQuery = 'SELECT * FROM Hikes'
-    if (difficulty):
-        hikeQuery +=  ' WHERE difficulty = %s'
-        cursor.execute(hikeQuery, (difficulty,))
-    else:
-        cursor.execute(hikeQuery)
+        cursor = mysql.connection.cursor()
+        hikeQuery = 'SELECT * FROM Hikes'
+        if (difficulty):
+            hikeQuery +=  ' WHERE difficulty = %s'
+            cursor.execute(hikeQuery, (difficulty,))
+        else:
+            cursor.execute(hikeQuery)
 
-    hikes = cursor.fetchall()
+        hikes = cursor.fetchall()
 
-    hikeRecords = []
-    for hike in hikes:
-        hikeID = str(hike[0])
+        hikeRecords = []
+        for hike in hikes:
+            hikeID = str(hike[0])
 
-        # Collect all routing nodes for this hike
-        cursor.execute(
-            'SELECT latitude, longitude ' +
-            'FROM RoutePoints ' +
-            'WHERE trail_id = %s ' + 
-            'ORDER BY point_order', (hikeID,)
-        )
-        routePoints = cursor.fetchall()
-        
-        # Create list of point objects for routing nodes
-        routingPointRecords = [routePoint(str(point[0]), str(point[1])) for point in routePoints]
+            # Collect all routing nodes for this hike
+            cursor.execute(
+                'SELECT latitude, longitude ' +
+                'FROM RoutePoints ' +
+                'WHERE trail_id = %s ' + 
+                'ORDER BY point_order',
+                (hikeID,)
+            )
+            routePoints = cursor.fetchall()
+            
+            # Create list of point objects for routing nodes
+            routingPointRecords = [routePoint(str(point[0]), str(point[1])) for point in routePoints]
 
-        # Create new hike objects
-        hikeObj = Hike(hikeID, str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), str(hike[7]), str(hike[8]), str(hike[9]), str(hike[10]), str(hike[11]), str(hike[12]), str(hike[13]), routingPointRecords)
-        hikeRecords.append(hikeObj)
+            # Create new hike objects
+            hikeObj = Hike(hikeID, str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), str(hike[7]), str(hike[8]), str(hike[9]), str(hike[10]), str(hike[11]), str(hike[12]), str(hike[13]), routingPointRecords)
+            hikeRecords.append(hikeObj)
 
-    hikeDictionaryList = [record.toDictionary() for record in hikeRecords]
-    cursor.close()
-    return jsonify(hikeDictionaryList)
+        hikeDictionaryList = [record.toDictionary() for record in hikeRecords]
+        cursor.close()
+        return jsonify(hikeDictionaryList), 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
-    app.run(host="0.0.0.0", port=port)
+    # app.run(host="0.0.0.0", port=port)
+    app.run(debug = True)
