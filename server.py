@@ -61,7 +61,7 @@ def home():
 @app.route("/users")
 def getUserData():
     cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM users')
+    cursor.execute('SELECT * FROM Users')
     users = cursor.fetchall()
     userRecords = []
     for user in users:
@@ -74,7 +74,7 @@ def getUserData():
 @app.route("/hikes")
 def getHikeData():
     cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM hikes')
+    cursor.execute('SELECT * FROM Hikes')
     hikes = cursor.fetchall()
     hikeRecords = []
     for hike in hikes:
