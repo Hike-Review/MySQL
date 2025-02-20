@@ -19,8 +19,8 @@ steps:
       - '--region=us-central1'
       - '--allow-unauthenticated'
       - '--service-account=641428707740-compute@developer.gserviceaccount.com'
-      - '--set-secrets=MYSQL_PASSWORD=projects/hike-review/secrets/password/versions/latest'
-      - '--set-secrets=MYSQL_HOST=projects/hike-review/secrets/dbip/versions/latest'
+      - '--set-secrets=MYSQL_PASSWORD=MYSQL_PASSWORD: latest'
+      - '--set-secrets=MYSQL_HOST=MYSQL_HOST: latest'
 
     
 images:
