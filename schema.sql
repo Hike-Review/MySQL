@@ -1,8 +1,9 @@
 -- schema.sql
+-- deployed using AWS RDS
 
-CREATE DATABASE IF NOT EXISTS HikeReview;
+CREATE DATABASE IF NOT EXISTS hikereviewdb;
 
-USE HikeReview;
+USE hikereviewdb;
 
 -- table to store user info
 CREATE TABLE IF NOT EXISTS Users (
@@ -54,9 +55,9 @@ CREATE TABLE IF NOT EXISTS Reviews (
 -- if trail/user id is deleted, corresponding reviews are deleted
 
 -- table for group info
-CREATE TABLE IF NOT EXISTS Groups (
+CREATE TABLE IF NOT EXISTS UserGroups (
     group_id INT AUTO_INCREMENT PRIMARY KEY,      -- create unique id
-    group_name VARCHAR(255) NOT NULL,              
+    group_name VARCHAR (255) NOT NULL,              
     group_description TEXT,                        
     created_by INT NOT NULL,                      
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
