@@ -1,11 +1,11 @@
 steps:
   # build image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/hike-review/github.com/hike-review/mysql:$COMMIT_SHA', '.']
+    args: ['build', '-t', 'gcr.io/hike-review/github.com/hike-review/mysql', '-f', 'Dockerfile', '.']
     
   # push image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/hike-review/github.com/hike-review/mysql:$COMMIT_SHA']
+    args: ['push', 'gcr.io/hike-review/github.com/hike-review/mysql']
     
   # deploy
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -14,12 +14,17 @@ steps:
       - 'run'
       - 'deploy'
       - 'mysql'
-      - '--image=gcr.io/hike-review/github.com/hike-review/mysql:$COMMIT_SHA'
+      - '--image=gcr.io/hike-review/github.com/hike-review/mysql'
       - '--platform=managed'
       - '--region=us-central1'
       - '--allow-unauthenticated'
       - '--service-account=641428707740-compute@developer.gserviceaccount.com'
-      - '--set-secrets=MYSQL_PASSWORD=secretName=password'
+      - '--set-secrets=MYSQL_PASSWORD=projects/hike-review/secrets/password/versions/latest'
+      - '--set-secrets=MYSQL_HOST=projects/hike-review/secrets/dbip/versions/latest'
+
     
 images:
-  - 'gcr.io/hike-review/github.com/hike-review/mysql:$COMMIT_SHA'
+  - 'gcr.io/hike-review/github.com/hike-review/mysql'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
