@@ -1,0 +1,101 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: '641428707740'
+  selfLink: /apis/serving.knative.dev/v1/namespaces/641428707740/services/mysql
+  uid: f782a1e5-e076-439a-8a75-273543ff2f33
+  resourceVersion: AAYulXA3YGA
+  generation: 13
+  creationTimestamp: '2025-02-11T03:38:25.891983Z'
+  labels:
+    commit-sha: 639b7606188e497f020dacd45a91b9fe013d3474
+    gcb-build-id: 85b5f0d9-e298-4f8b-b578-636f4738ac57
+    gcb-trigger-id: 364e192e-ff9b-47e0-a045-d0aa16a74372
+    gcb-trigger-region: global
+    managed-by: gcp-cloud-build-deploy-cloud-run
+    cloud.googleapis.com/location: us-central1
+  annotations:
+    serving.knative.dev/creator: eolivasb@ucsc.edu
+    serving.knative.dev/lastModifier: eolivasb@ucsc.edu
+    run.googleapis.com/client-name: cloud-console
+    run.googleapis.com/operation-id: c0c1c893-1052-4a57-905c-a98960f53631
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/urls: '["https://mysql-641428707740.us-central1.run.app","https://mysql-pkepwwpeqq-uc.a.run.app"]'
+spec:
+  template:
+    metadata:
+      labels:
+        client.knative.dev/nonce: bda5b118-fa00-4cb8-a67c-260b35a1ae51
+        commit-sha: 639b7606188e497f020dacd45a91b9fe013d3474
+        gcb-build-id: 85b5f0d9-e298-4f8b-b578-636f4738ac57
+        gcb-trigger-id: 364e192e-ff9b-47e0-a045-d0aa16a74372
+        gcb-trigger-region: global
+        managed-by: gcp-cloud-build-deploy-cloud-run
+        run.googleapis.com/startupProbeType: Default
+      annotations:
+        autoscaling.knative.dev/maxScale: '100'
+        run.googleapis.com/client-name: cloud-console
+        run.googleapis.com/vpc-access-egress: all-traffic
+        run.googleapis.com/vpc-access-connector: projects/hike-review/locations/us-central1/connectors/hikevpc
+        run.googleapis.com/startup-cpu-boost: 'true'
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      serviceAccountName: 641428707740-compute@developer.gserviceaccount.com
+      containers:
+      - name: placeholder-1
+        image: us-central1-docker.pkg.dev/hike-review/cloud-run-source-deploy/mysql/mysql:639b7606188e497f020dacd45a91b9fe013d3474
+        ports:
+        - name: http1
+          containerPort: 8080
+        env:
+        - name: MYSQL_USER
+          value: root
+        - name: MYSQL_DB
+          value: hikereviewdb
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: password
+        - name: MYSQL_HOST
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: dbip
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        startupProbe:
+          timeoutSeconds: 240
+          periodSeconds: 240
+          failureThreshold: 1
+          tcpSocket:
+            port: 8080
+  traffic:
+  - percent: 100
+    latestRevision: true
+status:
+  observedGeneration: 13
+  conditions:
+  - type: Ready
+    status: 'True'
+    lastTransitionTime: '2025-02-20T16:33:47.946080Z'
+  - type: ConfigurationsReady
+    status: 'True'
+    lastTransitionTime: '2025-02-20T16:33:46.679617Z'
+  - type: RoutesReady
+    status: 'True'
+    lastTransitionTime: '2025-02-20T16:33:47.907973Z'
+  latestReadyRevisionName: mysql-00012-c2c
+  latestCreatedRevisionName: mysql-00012-c2c
+  traffic:
+  - revisionName: mysql-00012-c2c
+    percent: 100
+    latestRevision: true
+  url: https://mysql-pkepwwpeqq-uc.a.run.app
+  address:
+    url: https://mysql-pkepwwpeqq-uc.a.run.app
