@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -13,8 +14,10 @@ app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 
 mysql = MySQL(app)
+jwt = JWTManager(app)
 
 # User Datasctructure
 class User:
@@ -84,12 +87,25 @@ class Hike:
             'routing_points': [(point.lat, point.lng) for point in self.routing_points]
         }
 
+# JWT Error Handlers
+@jwt.expired_token_loader
+def expiredTokenCallback(jwt_header, jwt_data):
+    return jsonify({'message' : 'Token has expired', 'error' : 'tokenExpired'}), 401
+
+@jwt.invalid_token_loader
+def invalidTokenCallback(error):
+    return jsonify({'message' : 'Signature verification failed', 'error' : 'invalidToken'}), 401
+
+@jwt.unauthorized_loader
+def missingTokenCallback(error):
+    return jsonify({'message' : 'Request doesn\'t contain valid token', 'error' : 'authorizationHeader'}), 401
+
 # Setup and route pages
 @app.route('/')
 def home():
     return 'Hikereview API'
 
-@app.route('/register', methods=['POST'])
+@app.route('/auth/register', methods=['POST'])
 def register():
     if (request.method == 'POST'):
         data = request.json
@@ -112,7 +128,7 @@ def register():
             existingUsername = cursor.fetchall()
 
             if (existingUsername):
-                return jsonify({'message': 'Username already in use'}), 400
+                return jsonify({'message': 'Username already in use'}), 409
 
             # Check if email is already in database
             cursor.execute(
@@ -125,7 +141,7 @@ def register():
             existingUserEmail = cursor.fetchall()
 
             if (existingUserEmail):
-                return jsonify({'message': 'Email already in use'}), 400
+                return jsonify({'message': 'Email already in use'}), 409
 
             # Insert new user
             cursor.execute(
@@ -135,13 +151,18 @@ def register():
                 (username, email, hashedPassword))
             mysql.connection.commit()
             cursor.close()
-            return jsonify({'message': 'User created successfully', 'username': username}), 201
+            return jsonify(
+                {
+                    'message' : 'User created successfully',
+                    'username' : username
+                }
+            ), 201
 
         except Exception as e:
             print(e)
             return jsonify({'error': str(e)}), 500
 
-@app.route('/login', methods=['POST'])
+@app.route('/auth/login', methods=['POST'])
 def login():
     if (request.method == 'POST'):
         data = request.json
@@ -164,14 +185,62 @@ def login():
         # Check if Username or email doesn't exist
         if (user == None):
             return jsonify({'message': 'Invalid username or email'}), 400
+        
+        username = user[0]
+        hashedPassword = user[2]
 
         # Check if Password is correct
-        if (check_password_hash(user[2], password)):
-            return jsonify({'message': 'You are now logged in!', 'username': user[1]}), 200
+        if (check_password_hash(hashedPassword, password)):
+            accessToken = create_access_token(identity = username)
+            refreshToken = create_refresh_token(identity = username)
+            
+            return jsonify(
+                {
+                    'message' : 'You are now logged in!',
+                    'username' : username,
+                    'tokens' : {
+                        'access' : accessToken,
+                        'refresh' : refreshToken
+                    }
+                }
+            ), 200
         else:
             return jsonify({'message': 'Invalid credentials'}), 401
 
+@app.route('/auth/identity', methods=['GET'])
+@jwt_required()
+def getCurrentIdentity():
+    if (request.method == 'GET'):
+        claims = get_jwt()
+        username = claims.get('sub')
+
+        cur = mysql.connection.cursor()
+        cur.execute(
+            'SELECT username, email, created_at ' +
+            'FROM users ' +
+            'WHERE username = %s' +
+            'LIMIT 1',
+            (username,)
+        )
+        user = cur.fetchone()
+        cur.close()
+        
+        if (user):
+            return jsonify(
+                {
+                    'claims' : claims,
+                    'user_details' : {
+                        'username' : user[0],
+                        'email' : user[1],
+                        'created_at' : user[2]
+                    } 
+                }
+            ), 200
+        else:
+            return jsonify({'message': 'no login detected'}), 400
+
 @app.route('/hikes', methods=['GET'])
+@jwt_required()
 def getHikeData():
     if (request.method == 'GET'):
         difficulty = request.args.get('difficulty', default='', type=str)
