@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt
+from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -206,6 +206,13 @@ def login():
             ), 200
         else:
             return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/auth/refresh', methods=['GET'])
+@jwt_required(refresh=True)
+def refreshToken():
+    username = get_jwt_identity()
+    newAccessToken = create_access_token(identity = username)
+    return jsonify({'access' : newAccessToken})
 
 @app.route('/auth/identity', methods=['GET'])
 @jwt_required()
