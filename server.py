@@ -100,14 +100,14 @@ def invalidTokenCallback(error):
 def missingTokenCallback(error):
     return jsonify({'message' : 'Request doesn\'t contain valid token', 'error' : 'authorizationHeader'}), 401
 
-# JWT Token Block list Check
+# JWT Block list Check
 @jwt.token_in_blocklist_loader
 def tokenInBlocklistCallback(jwt_header, jwt_data):
     jti = jwt_data['jti']
     cur = mysql.connection.cursor()
     cur.execute(
         'SELECT jti ' +
-        'FROM tokenblacklist ' +
+        'FROM TokenBlacklist ' +
         'WHERE jti = %s' +
         'LIMIT 1',
         (jti,)
@@ -136,7 +136,7 @@ def register():
             # Check if username is already in database
             cursor.execute(
                 'SELECT username ' +
-                'FROM users ' +
+                'FROM Users ' +
                 'WHERE username = %s ' + 
                 'LIMIT 1',
                 (username,)
@@ -149,7 +149,7 @@ def register():
             # Check if email is already in database
             cursor.execute(
                 'SELECT email ' +  
-                'FROM users ' +
+                'FROM Users ' +
                 'WHERE email = %s' +
                 'LIMIT 1',
                 (email,)
@@ -190,7 +190,7 @@ def login():
         cur = mysql.connection.cursor()
         cur.execute(
             'SELECT username, email, password_hash ' +
-            'FROM users ' +
+            'FROM Users ' +
             'WHERE username = %s' +
             'OR email = %s' +
             'LIMIT 1',
@@ -227,28 +227,30 @@ def login():
 @app.route('/auth/logout', methods=['GET'])
 @jwt_required(verify_type = False)
 def logout():
-    claims = get_jwt()
-    jti = claims.get('jti')
-    tokenType = claims.get('type')
+    if (request.method == 'GET'):
+        claims = get_jwt()
+        jti = claims.get('jti')
+        tokenType = claims.get('type')
 
-    # Insert token into databas blacklist
-    cursor = mysql.connection.cursor()
-    cursor.execute(
-        'INSERT INTO tokenblacklist ' +  
-        '(jti) ' +
-        'VALUES (%s)',
-        (jti,)
-    )
-    mysql.connection.commit()
-    # cursor.close()
-    return jsonify({'message' : 'Logout successful', 'token_revoked' : f'{tokenType} revoked'}), 200
+        # Insert token into databas blacklist
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'INSERT INTO tokenblacklist ' +  
+            '(jti) ' +
+            'VALUES (%s)',
+            (jti,)
+        )
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({'message' : 'Logout successful', 'token_revoked' : f'{tokenType} revoked'}), 200
 
 @app.route('/auth/refresh', methods=['GET'])
 @jwt_required(refresh=True)
 def refreshToken():
-    username = get_jwt_identity()
-    newAccessToken = create_access_token(identity = username)
-    return jsonify({'access' : newAccessToken})
+    if (request.method == 'GET'):
+        username = get_jwt_identity()
+        newAccessToken = create_access_token(identity = username)
+        return jsonify({'access' : newAccessToken})
 
 @app.route('/auth/identity', methods=['GET'])
 @jwt_required()
@@ -260,7 +262,7 @@ def getCurrentIdentity():
         cur = mysql.connection.cursor()
         cur.execute(
             'SELECT username, email, created_at ' +
-            'FROM users ' +
+            'FROM Users ' +
             'WHERE username = %s' +
             'LIMIT 1',
             (username,)
@@ -283,7 +285,6 @@ def getCurrentIdentity():
             return jsonify({'message': 'no login detected'}), 400
 
 @app.route('/hikes', methods=['GET'])
-@jwt_required()
 def getHikeData():
     if (request.method == 'GET'):
         difficulty = request.args.get('difficulty', default='', type=str)
