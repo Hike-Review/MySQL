@@ -97,7 +97,7 @@ class Review:
         return {
             'review_id': self.review_id,
             'trail_id': self.trail_id,
-            'user_id': self.user_id,
+            'username': self.username,
             'rating': self.rating,
             'review_text': self.review_text,
             'review_date': self.review_date
@@ -182,12 +182,12 @@ def handle_reviews():
     elif request.method == 'POST':
         data = request.json
 
-        required_fields = ['trail_id', 'user_id', 'rating', 'review_text']
+        required_fields = ['trail_id', 'username', 'rating', 'review_text']
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
 
         trail_id = data['trail_id']
-        user_id = data['user_id']
+        username = data['username']
         rating = data['rating']
         review_text = data['review_text']
 
@@ -196,8 +196,8 @@ def handle_reviews():
 
         cursor = mysql.connection.cursor()
         cursor.execute(
-            'INSERT INTO Reviews (trail_id, user_id, rating, review_text) VALUES (%s, %s, %s, %s)',
-            (trail_id, user_id, rating, review_text)
+            'INSERT INTO Reviews (trail_id, username, rating, review_text) VALUES (%s, %s, %s, %s)',
+            (trail_id, username, rating, review_text)
         )
         mysql.connection.commit()
 
