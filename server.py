@@ -100,7 +100,23 @@ def invalidTokenCallback(error):
 def missingTokenCallback(error):
     return jsonify({'message' : 'Request doesn\'t contain valid token', 'error' : 'authorizationHeader'}), 401
 
-# Setup and route pages
+# JWT Token Block list Check
+@jwt.token_in_blocklist_loader
+def tokenInBlocklistCallback(jwt_header, jwt_data):
+    jti = jwt_data['jti']
+    cur = mysql.connection.cursor()
+    cur.execute(
+        'SELECT jti ' +
+        'FROM tokenblacklist ' +
+        'WHERE jti = %s' +
+        'LIMIT 1',
+        (jti,)
+    )
+    token = cur.fetchone()
+    cur.close() 
+    return token is not None
+
+# API Endpoints
 @app.route('/')
 def home():
     return 'Hikereview API'
@@ -146,9 +162,10 @@ def register():
             # Insert new user
             cursor.execute(
                 'INSERT INTO users ' +  
-                '(username, email, password_hash)' +
+                '(username, email, password_hash) ' +
                 'VALUES (%s, %s, %s)',
-                (username, email, hashedPassword))
+                (username, email, hashedPassword)
+            )
             mysql.connection.commit()
             cursor.close()
             return jsonify(
@@ -206,6 +223,25 @@ def login():
             ), 200
         else:
             return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/auth/logout', methods=['GET'])
+@jwt_required(verify_type = False)
+def logout():
+    claims = get_jwt()
+    jti = claims.get('jti')
+    tokenType = claims.get('type')
+
+    # Insert token into databas blacklist
+    cursor = mysql.connection.cursor()
+    cursor.execute(
+        'INSERT INTO tokenblacklist ' +  
+        '(jti) ' +
+        'VALUES (%s)',
+        (jti,)
+    )
+    mysql.connection.commit()
+    # cursor.close()
+    return jsonify({'message' : 'Logout successful', 'token_revoked' : f'{tokenType} revoked'}), 200
 
 @app.route('/auth/refresh', methods=['GET'])
 @jwt_required(refresh=True)
