@@ -224,25 +224,25 @@ def login():
         else:
             return jsonify({'message': 'Invalid credentials'}), 401
 
-@app.route('/auth/logout', methods=['GET'])
-@jwt_required(verify_type = False)
-def logout():
-    if (request.method == 'GET'):
-        claims = get_jwt()
-        jti = claims.get('jti')
-        tokenType = claims.get('type')
+# @app.route('/auth/logout', methods=['GET'])
+# @jwt_required(verify_type = False)
+# def logout():
+#     if (request.method == 'GET'):
+#         claims = get_jwt()
+#         jti = claims.get('jti')
+#         tokenType = claims.get('type')
 
-        # Insert token into databas blacklist
-        cursor = mysql.connection.cursor()
-        cursor.execute(
-            'INSERT INTO tokenblacklist ' +  
-            '(jti) ' +
-            'VALUES (%s)',
-            (jti,)
-        )
-        mysql.connection.commit()
-        cursor.close()
-        return jsonify({'message' : 'Logout successful', 'token_revoked' : f'{tokenType} revoked'}), 200
+#         # Insert token into databas blacklist
+#         cursor = mysql.connection.cursor()
+#         cursor.execute(
+#             'INSERT INTO tokenblacklist ' +  
+#             '(jti) ' +
+#             'VALUES (%s)',
+#             (jti,)
+#         )
+#         mysql.connection.commit()
+#         cursor.close()
+#         return jsonify({'message' : 'Logout successful', 'token_revoked' : f'{tokenType} revoked'}), 200
 
 @app.route('/auth/refresh', methods=['GET'])
 @jwt_required(refresh=True)

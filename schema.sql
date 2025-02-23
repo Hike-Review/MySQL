@@ -72,10 +72,3 @@ CREATE TABLE IF NOT EXISTS FavoriteHikes (
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (trail_id) REFERENCES Hikes(trail_id) ON DELETE CASCADE
 );
-
--- table for storing unaccessable tokens
-CREATE TABLE IF NOT EXISTS TokenBlacklist  (
-    token_id INT AUTO_INCREMENT PRIMARY KEY,
-    jti VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
