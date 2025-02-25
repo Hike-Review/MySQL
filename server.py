@@ -85,10 +85,10 @@ class Hike:
     
 # Review Datastructure
 class Review:
-    def __init__(self, review_id, trail_id, user_id, rating, review_text, review_date):
+    def __init__(self, review_id, trail_id, username, rating, review_text, review_date):
         self.review_id = review_id
         self.trail_id = trail_id
-        self.user_id = user_id
+        self.username = username
         self.rating = rating
         self.review_text = review_text
         self.review_date = review_date
