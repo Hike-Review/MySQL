@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS RoutePoints (
 CREATE TABLE IF NOT EXISTS Reviews (
     review_id INT AUTO_INCREMENT PRIMARY KEY,
     trail_id INT NOT NULL,
-    username INT NOT NULL,
+    username VARCHAR(50) NOT NULL,
     rating INT CHECK (rating BETWEEN 1 AND 5),
     review_text TEXT,
     review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
