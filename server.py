@@ -12,6 +12,7 @@ app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
+app.config['MYSQL_PORT'] = int(os.getenv('MYSQL_PORT', 3306))
 mysql = MySQL(app)
 
 # User Datasctructure
@@ -81,6 +82,26 @@ class Hike:
             'created_at': self.created_at,
             'routing_points': [(point.lat, point.lng) for point in self.routing_points]
         }
+    
+# Review Datastructure
+class Review:
+    def __init__(self, review_id, trail_id, username, rating, review_text, review_date):
+        self.review_id = review_id
+        self.trail_id = trail_id
+        self.username = username
+        self.rating = rating
+        self.review_text = review_text
+        self.review_date = review_date
+
+    def toDictionary(self):
+        return {
+            'review_id': self.review_id,
+            'trail_id': self.trail_id,
+            'username': self.username,
+            'rating': self.rating,
+            'review_text': self.review_text,
+            'review_date': self.review_date
+        }
 
 # Setup and route pages
 @app.route('/')
@@ -138,6 +159,53 @@ def getHikeData():
     cursor.close()
     return jsonify(hikeDictionaryList)
 
+# Look at and post reviews
+@app.route('/reviews', methods=['GET', 'POST'])
+def handle_reviews():
+    if request.method == 'GET':
+        trail_id = request.args.get('trail_id', type=int)
+        if not trail_id:
+            return jsonify({'error': 'trail_id parameter is required'}), 400
+
+        cursor = mysql.connection.cursor()
+        cursor.execute('SELECT * FROM Reviews WHERE trail_id = %s', (trail_id,))
+        reviews = cursor.fetchall()
+
+        reviewRecords = [
+            Review(str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5]))
+            for r in reviews
+        ]
+
+        cursor.close()
+        return jsonify([review.toDictionary() for review in reviewRecords])
+
+    elif request.method == 'POST':
+        data = request.json
+
+        required_fields = ['trail_id', 'username', 'rating', 'review_text']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        trail_id = data['trail_id']
+        username = data['username']
+        rating = data['rating']
+        review_text = data['review_text']
+
+        if not (1 <= rating <= 5):
+            return jsonify({'error': 'Rating must be between 1 and 5'}), 400
+
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'INSERT INTO Reviews (trail_id, username, rating, review_text) VALUES (%s, %s, %s, %s)',
+            (trail_id, username, rating, review_text)
+        )
+        mysql.connection.commit()
+
+        new_id = cursor.lastrowid
+        cursor.close()
+
+        return jsonify({'message': 'Review added successfully', 'review_id': new_id}), 201
+    
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
     app.run(host="0.0.0.0", port=port)
