@@ -182,7 +182,7 @@ def register():
 
             # Insert new user
             cursor.execute(
-                'INSERT INTO users ' +  
+                'INSERT INTO Users ' +  
                 '(username, email, password_hash) ' +
                 'VALUES (%s, %s, %s)',
                 (username, email, hashedPassword)
