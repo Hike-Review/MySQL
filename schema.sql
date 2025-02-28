@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS UserGroups (
     group_description TEXT,
     trail_id INT NOT NULL,
     created_by INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    group_host VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     start_time TIMESTAMP NOT NULL
 );
 
