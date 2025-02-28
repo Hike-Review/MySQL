@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS Users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    favorite_hikes JSON DEFAULT NULL 
+    favorite_hikes JSON DEFAULT NULL            -- array for hikes
 );
 
 -- table to store hike info
@@ -58,9 +58,10 @@ CREATE TABLE IF NOT EXISTS Reviews (
 -- table for group info
 CREATE TABLE IF NOT EXISTS UserGroups (
     group_id INT AUTO_INCREMENT PRIMARY KEY,      -- create unique id
-    group_name VARCHAR (255) NOT NULL,              
-    group_description TEXT,                        
-    created_by INT NOT NULL,                      
+    group_name VARCHAR (255) NOT NULL,
+    group_description TEXT,
+    trail_id INT NOT NULL,
+    created_by INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     start_time TIMESTAMP NOT NULL
 );
