@@ -132,7 +132,7 @@ class Group:
             'group_host': self.group_host, 
             'created_at': self.created_at, 
             'start_time': self.start_time,
-            'users_joined': [user.username for user in self.users_joined]
+            'users_joined': self.users_joined
         } 
 
 # JWT Error Handlers
@@ -424,23 +424,38 @@ def postReviews():
         cursor.close()
 
         return jsonify({'message': 'Review added successfully', 'review_id': new_id}), 201
-    
+
 @app.route('/groups', methods=['GET'])
 def getGroups():
     if (request.method == 'GET'):
         trailId = request.args.get('trail_id', type = int)
-        if not trailId:
+        if (trailId == None):
             return jsonify({'error': 'trail_id parameter is required'}), 400
 
         cursor = mysql.connection.cursor()
         cursor.execute('SELECT * FROM UserGroups WHERE trail_id = %s', (trailId,))
         groups = cursor.fetchall()
 
-        groupRecords = [
-            Group(str(group[0]), str(group[1]), str(group[2]), str(group[3]), str(group[4]), str(group[5]), str(group[6]), str(group[7]), [])
-            for group in groups
-        ]
+        if (groups == None):
+            return jsonify({"error": "invalid group_id, group does not exist"}), 400
 
+        groupRecords = []
+        for group in groups:
+            groupId = str(group[0])
+
+            cursor.execute(
+                'SELECT user_id ' +
+                'FROM UserGroupMembers ' +
+                'WHERE group_id = %s ',
+                (groupId,)
+            )
+            usersInGroup = cursor.fetchall()
+
+            joinedUsers = [user[0] for user in usersInGroup]
+
+            groupObj = Group(str(group[0]), str(group[1]), str(group[2]), str(group[3]), str(group[4]), str(group[5]), str(group[6]), str(group[7]), joinedUsers)
+            groupRecords.append(groupObj)
+        
         cursor.close()
         return jsonify([group.toDictionary() for group in groupRecords])
 
@@ -486,6 +501,46 @@ def postGroups():
         cursor.close()
 
         return jsonify({'message': 'Review added successfully', 'groupId': newGroupId}), 201
+
+@app.route('/join/group', methods=['POST'])
+@jwt_required()
+def joinGroup():
+    if (request.method == 'POST'):
+        data = request.json
+
+        required_fields = ['group_id', 'user_id']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        groupId = data['group_id']
+        userId = data['user_id']
+        
+        # Get group object
+        cursor = mysql.connection.cursor()
+        cursor.execute('SELECT trail_id, start_time FROM UserGroups WHERE group_id = %s', (groupId,))
+        group = cursor.fetchone()
+        if (group == None):
+            return jsonify({"error": "invalid group_id, group does not exist"}), 400
+
+        startTime = str(group[1])
+
+        # Validate if joining before start time
+        currentTime = datetime.now()
+        startTimeStamp = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S')
+        if (currentTime > startTimeStamp):
+            cursor.execute('DELETE FROM UserGroupMembers WHERE group_id = %s', (groupId,))
+            cursor.execute('DELETE FROM UserGroups WHERE group_id = %s', (groupId,))
+            mysql.connection.commit()
+            cursor.close()
+            return jsonify({"message": "Did not join in time"}), 409
+
+        cursor.execute(
+            'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
+            (userId, groupId,)
+        )
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({"message": "Joined group successfully", "group_id": groupId}), 201
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
