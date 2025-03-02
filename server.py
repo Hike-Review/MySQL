@@ -470,6 +470,9 @@ def postGroups():
         cursor = mysql.connection.cursor()
         cursor.execute('SELECT user_id FROM Users WHERE username = %s', (hostName,))
         hostUser = cursor.fetchone()
+        if (hostUser == None):
+            return jsonify({"error": "Invalid user posting to database."}), 400
+        
         hostUserId = str(hostUser[0])
 
         # cursor = mysql.connection.cursor()
