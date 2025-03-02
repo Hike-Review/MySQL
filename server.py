@@ -4,6 +4,7 @@ from flask_mysqldb import MySQL
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -109,8 +110,8 @@ class Review:
         }
 
 # Group Datastructure
-class Groups:
-    def __init__(self, group_id, group_name, group_description, trail_id, created_by, group_host, created_at, start_time):
+class Group:
+    def __init__(self, group_id, group_name, group_description, trail_id, created_by, group_host, created_at, start_time, users_joined):
         self.group_id = group_id 
         self.group_name = group_name 
         self.group_description = group_description 
@@ -119,8 +120,9 @@ class Groups:
         self.group_host = group_host 
         self.created_at = created_at 
         self.start_time = start_time 
+        self.users_joined = users_joined
 
-    def toDisctionary(self):
+    def toDictionary(self):
         return {
             'group_id': self.group_id, 
             'group_name': self.group_name, 
@@ -130,6 +132,7 @@ class Groups:
             'group_host': self.group_host, 
             'created_at': self.created_at, 
             'start_time': self.start_time,
+            'users_joined': [user.username for user in self.users_joined]
         } 
 
 # JWT Error Handlers
@@ -422,6 +425,65 @@ def postReviews():
 
         return jsonify({'message': 'Review added successfully', 'review_id': new_id}), 201
     
+@app.route('/groups', methods=['GET'])
+def getGroups():
+    if (request.method == 'GET'):
+        trailId = request.args.get('trail_id', type = int)
+        if not trailId:
+            return jsonify({'error': 'trail_id parameter is required'}), 400
+
+        cursor = mysql.connection.cursor()
+        cursor.execute('SELECT * FROM UserGroups WHERE trail_id = %s', (trailId,))
+        groups = cursor.fetchall()
+
+        groupRecords = [
+            Group(str(group[0]), str(group[1]), str(group[2]), str(group[3]), str(group[4]), str(group[5]), str(group[6]), str(group[7]), [])
+            for group in groups
+        ]
+
+        cursor.close()
+        return jsonify([group.toDictionary() for group in groupRecords])
+
+@app.route('/groups', methods=['POST'])
+@jwt_required()
+def postGroups():
+    if (request.method == 'POST'):
+        data = request.json
+
+        required_fields = ['trail_id', 'group_host', 'group_name', 'group_description', 'start_time']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        trailId = data['trail_id']
+        hostName = data['group_host']
+        groupName = data['group_name']
+        groupDescription = data['group_description']
+        startTimeInput = data['start_time']
+        
+        # Extract and validate start time
+        try:
+            startTimeStamp = datetime.strptime(startTimeInput, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            return jsonify({"error": "Invalid startTimeStamp format. Use 'YYYY-MM-DD HH:MM:SS'"}), 400
+
+        # Get id of the user created
+        cursor = mysql.connection.cursor()
+        cursor.execute('SELECT user_id FROM Users WHERE username = %s', (hostName,))
+        hostUser = cursor.fetchone()
+        hostUserId = str(hostUser[0])
+
+        # cursor = mysql.connection.cursor()
+        cursor.execute(
+            'INSERT INTO UserGroups (trail_id, created_by, group_host, group_name, group_description, start_time) VALUES (%s, %s, %s, %s, %s, %s)',
+            (trailId, hostUserId, hostName, groupName, groupDescription, startTimeStamp)
+        )
+        mysql.connection.commit()
+
+        newGroupId = cursor.lastrowid
+        cursor.close()
+
+        return jsonify({'message': 'Review added successfully', 'groupId': newGroupId}), 201
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
     # app.run(host="0.0.0.0", port=port)
