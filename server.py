@@ -108,6 +108,30 @@ class Review:
             'review_date': self.review_date
         }
 
+# Group Datastructure
+class Groups:
+    def __init__(self, group_id, group_name, group_description, trail_id, created_by, group_host, created_at, start_time):
+        self.group_id = group_id 
+        self.group_name = group_name 
+        self.group_description = group_description 
+        self.trail_id = trail_id 
+        self.created_by = created_by 
+        self.group_host = group_host 
+        self.created_at = created_at 
+        self.start_time = start_time 
+
+    def toDisctionary(self):
+        return {
+            'group_id': self.group_id, 
+            'group_name': self.group_name, 
+            'group_description': self.group_description, 
+            'trail_id': self.trail_id, 
+            'created_by': self.created_by, 
+            'group_host': self.group_host, 
+            'created_at': self.created_at, 
+            'start_time': self.start_time,
+        } 
+
 # JWT Error Handlers
 @jwt.expired_token_loader
 def expiredTokenCallback(jwt_header, jwt_data):
@@ -400,4 +424,5 @@ def postReviews():
     
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
-    app.run(host="0.0.0.0", port=port)
+    # app.run(host="0.0.0.0", port=port)
+    app.run(debug = True)
