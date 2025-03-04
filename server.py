@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 from flask_cors import CORS
@@ -304,16 +305,16 @@ def refreshToken():
         newAccessToken = create_access_token(identity = username)
         return jsonify({'access' : newAccessToken})
 
-@app.route('/auth/identity', methods=['GET'])
+@app.route('/auth/identity', methods=['GET', 'POST']) # return user id, favorite hikes, post to save favorite
 @jwt_required()
 def getCurrentIdentity():
-    if (request.method == 'GET'):
-        claims = get_jwt()
-        username = claims.get('sub')
+    claims = get_jwt()
+    username = claims.get('sub')
+    cur = mysql.connection.cursor()
 
-        cur = mysql.connection.cursor()
+    if (request.method == 'GET'):
         cur.execute(
-            'SELECT username, email, created_at ' +
+            'SELECT user_id, username, email, created_at, favorite_hikes ' +
             'FROM Users ' +
             'WHERE username = %s' +
             'LIMIT 1',
@@ -325,16 +326,45 @@ def getCurrentIdentity():
         if (user):
             return jsonify(
                 {
-                    'claims' : claims,
-                    'user_details' : {
-                        'username' : user[0],
-                        'email' : user[1],
-                        'created_at' : user[2]
-                    } 
+                    'claims': claims,
+                    'user_details': {
+                        'user_id': user[0],
+                        'username': user[1],
+                        'email': user[2],
+                        'created_at': user[3],
+                        'favorite_hikes': json.loads(user[4]) if user[4] else []  # Convert JSON string to list
+                    }
                 }
             ), 200
         else:
             return jsonify({'message': 'no login detected'}), 400
+
+    elif request.method == 'POST':
+        # Add a hike name to favorite_hikes
+        data = request.get_json()
+        new_hike = data.get('trail_name')
+
+        if not new_hike:
+            return jsonify({'message': 'Hike name required'}), 400
+        
+        # Fetch current favorite hikes
+        cur.execute('SELECT favorite_hikes FROM Users WHERE username = %s LIMIT 1', (username,))
+        result = cur.fetchone()
+        favorite_hikes = json.loads(result[0]) if result and result[0] else []
+
+        # Prevent duplicates
+        if new_hike in favorite_hikes:
+            return jsonify({'message': 'Hike already favorited'}), 409
+
+        favorite_hikes.append(new_hike)  # Add new hike
+        cur.execute(
+            'UPDATE Users SET favorite_hikes = %s WHERE username = %s',
+            (json.dumps(favorite_hikes), username)
+            )
+        mysql.connection.commit()
+        cur.close()
+
+        return jsonify({'message': 'Hike added to favorites', 'favorite_hikes': favorite_hikes}), 201
 
 @app.route('/hikes', methods=['GET'])
 def getHikeData():
