@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS Users (
 CREATE TABLE IF NOT EXISTS Hikes(
     trail_id INT AUTO_INCREMENT PRIMARY KEY,    -- create unique id
     trail_name VARCHAR(100) NOT NULL,
+    image_name VARCHAR(250),
     difficulty ENUM('Easy', 'Moderate', 'Hard') NOT NULL,
     rating FLOAT,
     distance FLOAT,
