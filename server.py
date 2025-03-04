@@ -432,12 +432,26 @@ def postReviews():
 @app.route('/groups', methods=['GET'])
 def getGroups():
     if (request.method == 'GET'):
-        # trailId = request.args.get('trail_id', type = int)
-        # if (trailId == None):
-        #     return jsonify({'error': 'trail_id parameter is required'}), 400
+        startDateInput = request.args.get('start_date_range', type = str)
+        endDateInput = request.args.get('end_date_range', type = str)
+
+        if (startDateInput == None or endDateInput == None):
+            return jsonify({"error": "missing start and/or end date"}), 400
+
+        try:
+            startDate = datetime.strptime(startDateInput, '%Y-%m-%d')
+            endDate = datetime.strptime(endDateInput, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({"error": "Invalid date format format. Use 'YYYY-MM-DD'"}), 400    
 
         cursor = mysql.connection.cursor()
-        cursor.execute('SELECT * FROM UserGroups')
+        cursor.execute(
+            'SELECT * ' + 
+            'FROM UserGroups ' + 
+            'WHERE start_time >= %s ' + 
+            'AND start_time <= %s',
+            (startDate.strftime('%Y-%m-%d 00:00:00'), endDate.strftime('%Y-%m-%d 23:59:59'))
+        )
         groups = cursor.fetchall()
 
         if (groups == None):
