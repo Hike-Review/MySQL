@@ -111,7 +111,7 @@ class Review:
 
 # Group Datastructure
 class Group:
-    def __init__(self, group_id, group_name, group_description, trail_id, created_by, group_host, created_at, start_time, users_joined):
+    def __init__(self, group_id, group_name, group_description, trail_id, created_by, group_host, created_at, start_time, trail_name, total_users_joined, users_joined):
         self.group_id = group_id 
         self.group_name = group_name 
         self.group_description = group_description 
@@ -119,7 +119,9 @@ class Group:
         self.created_by = created_by 
         self.group_host = group_host 
         self.created_at = created_at 
-        self.start_time = start_time 
+        self.start_time = start_time
+        self.trail_name = trail_name
+        self.total_users_joined = total_users_joined
         self.users_joined = users_joined
 
     def toDictionary(self):
@@ -132,6 +134,8 @@ class Group:
             'group_host': self.group_host, 
             'created_at': self.created_at, 
             'start_time': self.start_time,
+            'trail_name': self.trail_name,
+            'total_users_joined': self.total_users_joined,
             'users_joined': self.users_joined
         } 
 
@@ -428,12 +432,12 @@ def postReviews():
 @app.route('/groups', methods=['GET'])
 def getGroups():
     if (request.method == 'GET'):
-        trailId = request.args.get('trail_id', type = int)
-        if (trailId == None):
-            return jsonify({'error': 'trail_id parameter is required'}), 400
+        # trailId = request.args.get('trail_id', type = int)
+        # if (trailId == None):
+        #     return jsonify({'error': 'trail_id parameter is required'}), 400
 
         cursor = mysql.connection.cursor()
-        cursor.execute('SELECT * FROM UserGroups WHERE trail_id = %s', (trailId,))
+        cursor.execute('SELECT * FROM UserGroups')
         groups = cursor.fetchall()
 
         if (groups == None):
@@ -442,7 +446,9 @@ def getGroups():
         groupRecords = []
         for group in groups:
             groupId = str(group[0])
+            trailId = str(group[3])
 
+            # Get group member user_id's
             cursor.execute(
                 'SELECT user_id ' +
                 'FROM UserGroupMembers ' +
@@ -450,10 +456,20 @@ def getGroups():
                 (groupId,)
             )
             usersInGroup = cursor.fetchall()
-
             joinedUsers = [user[0] for user in usersInGroup]
+            totalJoinedUsers = len(joinedUsers)
 
-            groupObj = Group(str(group[0]), str(group[1]), str(group[2]), str(group[3]), str(group[4]), str(group[5]), str(group[6]), str(group[7]), joinedUsers)
+            # Get trail name
+            cursor.execute(
+                'SELECT trail_name ' + 
+                'FROM Hikes ' + 
+                'WHERE trail_id = %s',
+                (trailId,)
+            )
+            trail = cursor.fetchone()
+            trailName = str(trail[0])
+
+            groupObj = Group(groupId, str(group[1]), str(group[2]), trailId, str(group[4]), str(group[5]), str(group[6]), str(group[7]), trailName, totalJoinedUsers,  joinedUsers)
             groupRecords.append(groupObj)
         
         cursor.close()
