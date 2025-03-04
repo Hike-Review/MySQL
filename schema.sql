@@ -1,5 +1,5 @@
 -- schema.sql
--- deployed using AWS RDS
+-- deployed using Google SQL
 
 CREATE DATABASE IF NOT EXISTS hikereviewdb;
 
@@ -11,13 +11,15 @@ CREATE TABLE IF NOT EXISTS Users (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    favorite_hikes JSON DEFAULT NULL            -- array for hikes
 );
 
 -- table to store hike info
 CREATE TABLE IF NOT EXISTS Hikes(
     trail_id INT AUTO_INCREMENT PRIMARY KEY,    -- create unique id
     trail_name VARCHAR(100) NOT NULL,
+    image_name VARCHAR(250),
     difficulty ENUM('Easy', 'Moderate', 'Hard') NOT NULL,
     rating FLOAT,
     distance FLOAT,
@@ -57,18 +59,21 @@ CREATE TABLE IF NOT EXISTS Reviews (
 -- table for group info
 CREATE TABLE IF NOT EXISTS UserGroups (
     group_id INT AUTO_INCREMENT PRIMARY KEY,      -- create unique id
-    group_name VARCHAR (255) NOT NULL,              
-    group_description TEXT,                        
-    created_by INT NOT NULL,                      
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    group_name VARCHAR (255) NOT NULL,
+    group_description TEXT,
+    trail_id INT NOT NULL,
+    created_by INT NOT NULL,
+    group_host VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    start_time TIMESTAMP NOT NULL
 );
 
--- table for storing user favorite hikes
-CREATE TABLE IF NOT EXISTS FavoriteHikes (
+-- table for which users are in which groups
+CREATE TABLE IF NOT EXISTS UserGroupMembers (
     user_id INT NOT NULL,
-    trail_id INT NOT NULL,
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, trail_id),
+    group_id INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp when user joined
+    PRIMARY KEY (user_id, group_id),
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (trail_id) REFERENCES Hikes(trail_id) ON DELETE CASCADE
+    FOREIGN KEY (group_id) REFERENCES UserGroups(group_id) ON DELETE CASCADE
 );
