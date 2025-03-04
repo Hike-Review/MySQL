@@ -4,6 +4,7 @@ from flask_mysqldb import MySQL
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -107,6 +108,36 @@ class Review:
             'review_text': self.review_text,
             'review_date': self.review_date
         }
+
+# Group Datastructure
+class Group:
+    def __init__(self, group_id, group_name, group_description, trail_id, created_by, group_host, created_at, start_time, trail_name, total_users_joined, users_joined):
+        self.group_id = group_id 
+        self.group_name = group_name 
+        self.group_description = group_description 
+        self.trail_id = trail_id 
+        self.created_by = created_by 
+        self.group_host = group_host 
+        self.created_at = created_at 
+        self.start_time = start_time
+        self.trail_name = trail_name
+        self.total_users_joined = total_users_joined
+        self.users_joined = users_joined
+
+    def toDictionary(self):
+        return {
+            'group_id': self.group_id, 
+            'group_name': self.group_name, 
+            'group_description': self.group_description, 
+            'trail_id': self.trail_id, 
+            'created_by': self.created_by, 
+            'group_host': self.group_host, 
+            'created_at': self.created_at, 
+            'start_time': self.start_time,
+            'trail_name': self.trail_name,
+            'total_users_joined': self.total_users_joined,
+            'users_joined': self.users_joined
+        } 
 
 # JWT Error Handlers
 @jwt.expired_token_loader
@@ -397,7 +428,150 @@ def postReviews():
         cursor.close()
 
         return jsonify({'message': 'Review added successfully', 'review_id': new_id}), 201
-    
+
+@app.route('/groups', methods=['GET'])
+def getGroups():
+    if (request.method == 'GET'):
+        startDateInput = request.args.get('start_date_range', type = str)
+        endDateInput = request.args.get('end_date_range', type = str)
+
+        if (startDateInput == None or endDateInput == None):
+            return jsonify({"error": "missing start and/or end date"}), 400
+
+        try:
+            startDate = datetime.strptime(startDateInput, '%Y-%m-%d')
+            endDate = datetime.strptime(endDateInput, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({"error": "Invalid date format format. Use 'YYYY-MM-DD'"}), 400    
+
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            'SELECT * ' + 
+            'FROM UserGroups ' + 
+            'WHERE start_time >= %s ' + 
+            'AND start_time <= %s',
+            (startDate.strftime('%Y-%m-%d 00:00:00'), endDate.strftime('%Y-%m-%d 23:59:59'))
+        )
+        groups = cursor.fetchall()
+
+        if (groups == None):
+            return jsonify({"error": "invalid group_id, group does not exist"}), 400
+
+        groupRecords = []
+        for group in groups:
+            groupId = str(group[0])
+            trailId = str(group[3])
+
+            # Get group member user_id's
+            cursor.execute(
+                'SELECT user_id ' +
+                'FROM UserGroupMembers ' +
+                'WHERE group_id = %s ',
+                (groupId,)
+            )
+            usersInGroup = cursor.fetchall()
+            joinedUsers = [user[0] for user in usersInGroup]
+            totalJoinedUsers = len(joinedUsers)
+
+            # Get trail name
+            cursor.execute(
+                'SELECT trail_name ' + 
+                'FROM Hikes ' + 
+                'WHERE trail_id = %s',
+                (trailId,)
+            )
+            trail = cursor.fetchone()
+            trailName = str(trail[0])
+
+            groupObj = Group(groupId, str(group[1]), str(group[2]), trailId, str(group[4]), str(group[5]), str(group[6]), str(group[7]), trailName, totalJoinedUsers,  joinedUsers)
+            groupRecords.append(groupObj)
+        
+        cursor.close()
+        return jsonify([group.toDictionary() for group in groupRecords])
+
+@app.route('/groups', methods=['POST'])
+@jwt_required()
+def postGroups():
+    if (request.method == 'POST'):
+        data = request.json
+
+        required_fields = ['trail_id', 'group_host', 'group_name', 'group_description', 'start_time']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        trailId = data['trail_id']
+        hostName = data['group_host']
+        groupName = data['group_name']
+        groupDescription = data['group_description']
+        startTimeInput = data['start_time']
+        
+        # Extract and validate start time
+        try:
+            startTimeStamp = datetime.strptime(startTimeInput, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            return jsonify({"error": "Invalid startTimeStamp format. Use 'YYYY-MM-DD HH:MM:SS'"}), 400
+
+        # Get id of the user created
+        cursor = mysql.connection.cursor()
+        cursor.execute('SELECT user_id FROM Users WHERE username = %s', (hostName,))
+        hostUser = cursor.fetchone()
+        if (hostUser == None):
+            return jsonify({"error": "Invalid user posting to database."}), 400
+        
+        hostUserId = str(hostUser[0])
+
+        # cursor = mysql.connection.cursor()
+        cursor.execute(
+            'INSERT INTO UserGroups (trail_id, created_by, group_host, group_name, group_description, start_time) VALUES (%s, %s, %s, %s, %s, %s)',
+            (trailId, hostUserId, hostName, groupName, groupDescription, startTimeStamp)
+        )
+        mysql.connection.commit()
+
+        newGroupId = cursor.lastrowid
+        cursor.close()
+
+        return jsonify({'message': 'Review added successfully', 'groupId': newGroupId}), 201
+
+@app.route('/join/group', methods=['POST'])
+@jwt_required()
+def joinGroup():
+    if (request.method == 'POST'):
+        data = request.json
+
+        required_fields = ['group_id', 'user_id']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        groupId = data['group_id']
+        userId = data['user_id']
+        
+        # Get group object
+        cursor = mysql.connection.cursor()
+        cursor.execute('SELECT trail_id, start_time FROM UserGroups WHERE group_id = %s', (groupId,))
+        group = cursor.fetchone()
+        if (group == None):
+            return jsonify({"error": "invalid group_id, group does not exist"}), 400
+
+        startTime = str(group[1])
+
+        # Validate if joining before start time
+        currentTime = datetime.now()
+        startTimeStamp = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S')
+        if (currentTime > startTimeStamp):
+            cursor.execute('DELETE FROM UserGroupMembers WHERE group_id = %s', (groupId,))
+            cursor.execute('DELETE FROM UserGroups WHERE group_id = %s', (groupId,))
+            mysql.connection.commit()
+            cursor.close()
+            return jsonify({"message": "Did not join in time"}), 409
+
+        cursor.execute(
+            'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
+            (userId, groupId,)
+        )
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({"message": "Joined group successfully", "group_id": groupId}), 201
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
     app.run(host="0.0.0.0", port=port)
