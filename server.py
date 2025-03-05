@@ -431,10 +431,9 @@ def getHikeData():
         cursor.close()
         return jsonify(hikeDictionaryList), 200
 
-# Look at and post reviews
-@app.route('/reviews', methods=['GET', 'POST'])
-def handle_reviews():
-    if request.method == 'GET':
+@app.route('/reviews', methods=['GET'])
+def getReviews():
+    if (request.method == 'GET'):
         trail_id = request.args.get('trail_id', type=int)
         if not trail_id:
             return jsonify({'error': 'trail_id parameter is required'}), 400
@@ -451,7 +450,10 @@ def handle_reviews():
         cursor.close()
         return jsonify([review.toDictionary() for review in reviewRecords])
 
-    elif request.method == 'POST':
+@app.route('/reviews', methods=['POST'])
+@jwt_required()
+def postReviews():
+    if (request.method == 'POST'):
         data = request.json
 
         required_fields = ['trail_id', 'username', 'rating', 'review_text']
