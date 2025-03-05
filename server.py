@@ -399,11 +399,11 @@ def getHikeData():
             routingPointRecords = [routePoint(float(point[0]), float(point[1])) for point in routePoints]
 
             # Create new hike objects
-            startLat = float(hike[6])
-            startLng = float(hike[7])
-            endLat = float(hike[8])
-            endLng = float(hike[9])
-            hikeObj = Hike(hikeID, str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), startLat, startLng, endLat, endLng, str(hike[10]), str(hike[11]), str(hike[12]), str(hike[13]), routingPointRecords)
+            startLat = float(hike[7])
+            startLng = float(hike[8])
+            endLat = float(hike[9])
+            endLng = float(hike[10])
+            hikeObj = Hike(hikeID, str(hike[1]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), startLat, startLng, endLat, endLng, str(hike[11]), str(hike[12]), str(hike[13]), str(hike[14]), routingPointRecords)
             hikeRecords.append(hikeObj)
 
         hikeDictionaryList = [record.toDictionary() for record in hikeRecords]
