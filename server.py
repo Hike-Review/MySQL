@@ -305,7 +305,7 @@ def refreshToken():
         newAccessToken = create_access_token(identity = username)
         return jsonify({'access' : newAccessToken})
 
-@app.route('/auth/identity', methods=['GET', 'POST'])
+@app.route('/auth/identity', methods=['GET'])
 @jwt_required()
 def getCurrentIdentity():
     claims = get_jwt()
@@ -339,7 +339,7 @@ def getCurrentIdentity():
         else:
             return jsonify({'message': 'no login detected'}), 400
 
-@app.route('/auth/logout', methods=['POST'])
+@app.route('/favorite/hikes', methods=['POST'])
 @jwt_required()
 def logout():
     username = get_jwt_identity()
@@ -349,7 +349,7 @@ def logout():
         data = request.get_json()
         favorite_hikes = data.get('favorite_hikes', [])  # Default to empty list if not provided
 
-        # Ensure it's a valid JSON array
+        # Check for valid JSON array
         favorite_hikes_json = json.dumps(favorite_hikes)
 
         # Update the user's favorite hikes in the database
