@@ -11,7 +11,7 @@ app = Flask(__name__)
 
 CORS(app)
 
-# Main AWS Database
+# Main Google SQL Database
 app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
@@ -40,7 +40,7 @@ class User:
             'created_at': self.created_at
         }
 
-# Rout Points Datastructure
+# Route Points Datastructure
 class routePoint:
     def __init__(self, lat, lng):
         self.lat = lat
@@ -305,7 +305,7 @@ def refreshToken():
         newAccessToken = create_access_token(identity = username)
         return jsonify({'access' : newAccessToken})
 
-@app.route('/auth/identity', methods=['GET', 'POST']) # return user id, favorite hikes, post to save favorite
+@app.route('/auth/identity', methods=['GET', 'POST'])
 @jwt_required()
 def getCurrentIdentity():
     claims = get_jwt()
@@ -339,32 +339,28 @@ def getCurrentIdentity():
         else:
             return jsonify({'message': 'no login detected'}), 400
 
-    elif request.method == 'POST':
-        # Add a hike name to favorite_hikes
+@app.route('/auth/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    username = get_jwt_identity()
+    cur = mysql.connection.cursor()
+
+    if request.method == 'POST':
         data = request.get_json()
-        new_hike = data.get('trail_name')
+        favorite_hikes = data.get('favorite_hikes', [])  # Default to empty list if not provided
 
-        if not new_hike:
-            return jsonify({'message': 'Hike name required'}), 400
-        
-        # Fetch current favorite hikes
-        cur.execute('SELECT favorite_hikes FROM Users WHERE username = %s LIMIT 1', (username,))
-        result = cur.fetchone()
-        favorite_hikes = json.loads(result[0]) if result and result[0] else []
+        # Ensure it's a valid JSON array
+        favorite_hikes_json = json.dumps(favorite_hikes)
 
-        # Prevent duplicates
-        if new_hike in favorite_hikes:
-            return jsonify({'message': 'Hike already favorited'}), 409
-
-        favorite_hikes.append(new_hike)  # Add new hike
+        # Update the user's favorite hikes in the database
         cur.execute(
             'UPDATE Users SET favorite_hikes = %s WHERE username = %s',
-            (json.dumps(favorite_hikes), username)
-            )
+            (favorite_hikes_json, username)
+        )
         mysql.connection.commit()
         cur.close()
 
-        return jsonify({'message': 'Hike added to favorites', 'favorite_hikes': favorite_hikes}), 201
+        return jsonify({'message': 'Favorite hikes updated successfully', 'favorite_hikes': favorite_hikes}), 200
 
 @app.route('/hikes', methods=['GET'])
 def getHikeData():
