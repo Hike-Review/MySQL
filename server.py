@@ -154,20 +154,20 @@ def missingTokenCallback(error):
     return jsonify({'message' : 'Request doesn\'t contain valid token', 'error' : 'authorizationHeader'}), 401
 
 # JWT Block list Check
-@jwt.token_in_blocklist_loader
-def tokenInBlocklistCallback(jwt_header, jwt_data):
-    jti = jwt_data['jti']
-    cur = mysql.connection.cursor()
-    cur.execute(
-        'SELECT jti ' +
-        'FROM TokenBlacklist ' +
-        'WHERE jti = %s' +
-        'LIMIT 1',
-        (jti,)
-    )
-    token = cur.fetchone()
-    cur.close() 
-    return token is not None
+# @jwt.token_in_blocklist_loader
+# def tokenInBlocklistCallback(jwt_header, jwt_data):
+#     jti = jwt_data['jti']
+#     cur = mysql.connection.cursor()
+#     cur.execute(
+#         'SELECT jti ' +
+#         'FROM TokenBlacklist ' +
+#         'WHERE jti = %s' +
+#         'LIMIT 1',
+#         (jti,)
+#     )
+#     token = cur.fetchone()
+#     cur.close() 
+#     return token is not None
 
 # API Endpoints
 @app.route('/')
