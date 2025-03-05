@@ -305,7 +305,7 @@ def refreshToken():
         newAccessToken = create_access_token(identity = username)
         return jsonify({'access' : newAccessToken})
 
-@app.route('/auth/identity', methods=['GET', 'POST']) # return user id, favorite hikes, post to save favorite
+@app.route('/auth/identity', methods=['GET', 'POST']) 
 @jwt_required()
 def getCurrentIdentity():
     claims = get_jwt()
@@ -346,7 +346,15 @@ def getCurrentIdentity():
                         'email': user[2],
                         'created_at': user[3],
                         'favorite_hikes': json.loads(user[4]) if user[4] else []  # Convert JSON string to list
-                    }
+                    },
+                    'groups': [
+                        {
+                            'group_name': g[0],
+                            'start_time': g[1],
+                            'trail_name': g[2]
+                        }
+                        for g in groups
+                    ]
                 }
             ), 200
         else:
