@@ -341,7 +341,7 @@ def getCurrentIdentity():
 
 @app.route('/favorite/hikes', methods=['POST'])
 @jwt_required()
-def logout():
+def postHikes():
     username = get_jwt_identity()
     cur = mysql.connection.cursor()
 
