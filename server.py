@@ -54,9 +54,10 @@ class routePoint:
 
 # Hike Datastructure
 class Hike:
-    def __init__(self, trail_id, trail_name, difficulty, rating, distance, duration, start_lat, start_lng, end_lat, end_lng, tags, description, creator_id, created_at, routing_points):
+    def __init__(self, trail_id, trail_name, trail_image, difficulty, rating, distance, duration, start_lat, start_lng, end_lat, end_lng, tags, description, creator_id, created_at, routing_points):
         self.trail_id = trail_id
         self.trail_name = trail_name
+        self.trail_image = trail_image
         self.difficulty = difficulty
         self.rating = rating
         self.distance = distance
@@ -75,6 +76,7 @@ class Hike:
         return {
             'trail_id': self.trail_id,
             'trail_name': self.trail_name,
+            'trail_image': self.trail_image,
             'difficulty': self.difficulty,
             'rating': self.rating,
             'distance': self.distance,
@@ -391,8 +393,9 @@ def getCurrentIdentity():
 def getHikeData():
     if (request.method == 'GET'):
         difficulty = request.args.get('difficulty', default='', type=str)
-
         cursor = mysql.connection.cursor()
+
+        # Display all hikes or based on difficulty  
         hikeQuery = 'SELECT * FROM Hikes'
         if (difficulty):
             hikeQuery +=  ' WHERE difficulty = %s'
@@ -402,6 +405,7 @@ def getHikeData():
 
         hikes = cursor.fetchall()
 
+        # Display Each Hike
         hikeRecords = []
         for hike in hikes:
             hikeID = str(hike[0])
@@ -420,11 +424,25 @@ def getHikeData():
             routingPointRecords = [routePoint(float(point[0]), float(point[1])) for point in routePoints]
 
             # Create new hike objects
+            trailName = str(hike[1])
+            trailImage = str(hike[2])
+            trailDifficulty = str(hike[3])
+            trailRating = str(hike[4])
+            trailDistance = str(hike[5])
+            trailDuration = str(hike[6])
             startLat = float(hike[7])
             startLng = float(hike[8])
             endLat = float(hike[9])
             endLng = float(hike[10])
-            hikeObj = Hike(hikeID, str(hike[1]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), startLat, startLng, endLat, endLng, str(hike[11]), str(hike[12]), str(hike[13]), str(hike[14]), routingPointRecords)
+            trailTags = str(hike[11])
+            trailDescription = str(hike[12])
+            trailCreatorUserId = str(hike[13])
+            trailCreatedAt = str(hike[14])
+            hikeObj = Hike(
+                hikeID, trailName, trailImage, trailDifficulty, trailRating, trailDistance, 
+                trailDuration, startLat, startLng, endLat, endLng, trailTags, trailDescription,
+                trailCreatorUserId, trailCreatedAt, routingPointRecords
+            )
             hikeRecords.append(hikeObj)
 
         hikeDictionaryList = [record.toDictionary() for record in hikeRecords]
@@ -625,4 +643,5 @@ def joinGroup():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
-    app.run(host="0.0.0.0", port=port)
+    # app.run(host="0.0.0.0", port=port)
+    app.run(debug = True)
