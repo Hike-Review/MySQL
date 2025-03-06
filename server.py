@@ -501,6 +501,7 @@ def postReviews():
 @app.route('/groups', methods=['GET'])
 def getGroups():
     if (request.method == 'GET'):
+        trailIdInput = request.args.get('trail_id', default='', type = str)
         startDateInput = request.args.get('start_date_range', type = str)
         endDateInput = request.args.get('end_date_range', type = str)
 
@@ -511,16 +512,16 @@ def getGroups():
             startDate = datetime.strptime(startDateInput, '%Y-%m-%d %H:%M:%S')
             endDate = datetime.strptime(endDateInput, '%Y-%m-%d %H:%M:%S')
         except ValueError:
-            return jsonify({"error": "Invalid date format format used. Use 'YYYY-MM-DD HH:MM:SS'"}), 400    
+            return jsonify({"error": "Invalid date format format used. Use 'YYYY-MM-DD HH:MM:SS'"}), 400
 
+        # Get All groups or groups based on Trail Id
         cursor = mysql.connection.cursor()
-        cursor.execute(
-            'SELECT * ' + 
-            'FROM UserGroups ' + 
-            'WHERE start_time >= %s ' + 
-            'AND start_time <= %s',
-            (startDate, endDate)
-        )
+        groupQuery = 'SELECT * FROM UserGRoups WHERE start_time >= %s AND start_time <= %s'
+        if (trailIdInput):
+            groupQuery += ' AND trail_id = %s'
+            cursor.execute(groupQuery, (startDate, endDate, trailIdInput,))
+        else:
+            cursor.execute(groupQuery, (startDate, endDate,))
         groups = cursor.fetchall()
 
         if (groups == None):
@@ -666,5 +667,4 @@ def joinGroup():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
-    # app.run(host="0.0.0.0", port=port)
-    app.run(debug = True)
+    app.run(host="0.0.0.0", port=port)
