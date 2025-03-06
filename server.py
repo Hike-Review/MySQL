@@ -54,9 +54,10 @@ class routePoint:
 
 # Hike Datastructure
 class Hike:
-    def __init__(self, trail_id, trail_name, difficulty, rating, distance, duration, start_lat, start_lng, end_lat, end_lng, tags, description, creator_id, created_at, routing_points):
+    def __init__(self, trail_id, trail_name, trail_image, difficulty, rating, distance, duration, start_lat, start_lng, end_lat, end_lng, tags, description, creator_id, created_at, routing_points):
         self.trail_id = trail_id
         self.trail_name = trail_name
+        self.trail_image = trail_image
         self.difficulty = difficulty
         self.rating = rating
         self.distance = distance
@@ -75,6 +76,7 @@ class Hike:
         return {
             'trail_id': self.trail_id,
             'trail_name': self.trail_name,
+            'trail_image': self.trail_image,
             'difficulty': self.difficulty,
             'rating': self.rating,
             'distance': self.distance,
@@ -391,8 +393,9 @@ def getCurrentIdentity():
 def getHikeData():
     if (request.method == 'GET'):
         difficulty = request.args.get('difficulty', default='', type=str)
-
         cursor = mysql.connection.cursor()
+
+        # Display all hikes or based on difficulty  
         hikeQuery = 'SELECT * FROM Hikes'
         if (difficulty):
             hikeQuery +=  ' WHERE difficulty = %s'
@@ -402,6 +405,7 @@ def getHikeData():
 
         hikes = cursor.fetchall()
 
+        # Display Each Hike
         hikeRecords = []
         for hike in hikes:
             hikeID = str(hike[0])
@@ -420,11 +424,25 @@ def getHikeData():
             routingPointRecords = [routePoint(float(point[0]), float(point[1])) for point in routePoints]
 
             # Create new hike objects
+            trailName = str(hike[1])
+            trailImage = str(hike[2])
+            trailDifficulty = str(hike[3])
+            trailRating = str(hike[4])
+            trailDistance = str(hike[5])
+            trailDuration = str(hike[6])
             startLat = float(hike[7])
             startLng = float(hike[8])
             endLat = float(hike[9])
             endLng = float(hike[10])
-            hikeObj = Hike(hikeID, str(hike[1]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), startLat, startLng, endLat, endLng, str(hike[11]), str(hike[12]), str(hike[13]), str(hike[14]), routingPointRecords)
+            trailTags = str(hike[11])
+            trailDescription = str(hike[12])
+            trailCreatorUserId = str(hike[13])
+            trailCreatedAt = str(hike[14])
+            hikeObj = Hike(
+                hikeID, trailName, trailImage, trailDifficulty, trailRating, trailDistance, 
+                trailDuration, startLat, startLng, endLat, endLng, trailTags, trailDescription,
+                trailCreatorUserId, trailCreatedAt, routingPointRecords
+            )
             hikeRecords.append(hikeObj)
 
         hikeDictionaryList = [record.toDictionary() for record in hikeRecords]
@@ -483,6 +501,7 @@ def postReviews():
 @app.route('/groups', methods=['GET'])
 def getGroups():
     if (request.method == 'GET'):
+        trailIdInput = request.args.get('trail_id', default='', type = str)
         startDateInput = request.args.get('start_date_range', type = str)
         endDateInput = request.args.get('end_date_range', type = str)
 
@@ -490,19 +509,19 @@ def getGroups():
             return jsonify({"error": "missing start and/or end date"}), 400
 
         try:
-            startDate = datetime.strptime(startDateInput, '%Y-%m-%d')
-            endDate = datetime.strptime(endDateInput, '%Y-%m-%d')
+            startDate = datetime.strptime(startDateInput, '%Y-%m-%d %H:%M:%S')
+            endDate = datetime.strptime(endDateInput, '%Y-%m-%d %H:%M:%S')
         except ValueError:
-            return jsonify({"error": "Invalid date format format. Use 'YYYY-MM-DD'"}), 400    
+            return jsonify({"error": "Invalid date format format used. Use 'YYYY-MM-DD HH:MM:SS'"}), 400
 
+        # Get All groups or groups based on Trail Id
         cursor = mysql.connection.cursor()
-        cursor.execute(
-            'SELECT * ' + 
-            'FROM UserGroups ' + 
-            'WHERE start_time >= %s ' + 
-            'AND start_time <= %s',
-            (startDate.strftime('%Y-%m-%d 00:00:00'), endDate.strftime('%Y-%m-%d 23:59:59'))
-        )
+        groupQuery = 'SELECT * FROM UserGRoups WHERE start_time >= %s AND start_time <= %s'
+        if (trailIdInput):
+            groupQuery += ' AND trail_id = %s'
+            cursor.execute(groupQuery, (startDate, endDate, trailIdInput,))
+        else:
+            cursor.execute(groupQuery, (startDate, endDate,))
         groups = cursor.fetchall()
 
         if (groups == None):
@@ -534,7 +553,18 @@ def getGroups():
             trail = cursor.fetchone()
             trailName = str(trail[0])
 
-            groupObj = Group(groupId, str(group[1]), str(group[2]), trailId, str(group[4]), str(group[5]), str(group[6]), str(group[7]), trailName, totalJoinedUsers,  joinedUsers)
+            # Create Group Object
+            groupName = str(group[1])
+            groupDescription = str(group[2])
+            createdByUserId = str(group[4])
+            groupHostUsername = str(group[5])
+            groupCreatedAt = str(group[6])
+            groupStartTime = str(group[7])
+            groupObj = Group(
+                groupId, groupName, groupDescription, trailId, createdByUserId, 
+                groupHostUsername, groupCreatedAt, groupStartTime, trailName, 
+                totalJoinedUsers, joinedUsers
+            )
             groupRecords.append(groupObj)
         
         cursor.close()
@@ -571,14 +601,20 @@ def postGroups():
         
         hostUserId = str(hostUser[0])
 
-        # cursor = mysql.connection.cursor()
+        # Insert new group to database
         cursor.execute(
             'INSERT INTO UserGroups (trail_id, created_by, group_host, group_name, group_description, start_time) VALUES (%s, %s, %s, %s, %s, %s)',
             (trailId, hostUserId, hostName, groupName, groupDescription, startTimeStamp)
         )
-        mysql.connection.commit()
-
         newGroupId = cursor.lastrowid
+
+        # Automatically Join Host to the group
+        cursor.execute(
+            'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
+            (hostUserId, newGroupId)
+        )
+
+        mysql.connection.commit()
         cursor.close()
 
         return jsonify({'message': 'Review added successfully', 'groupId': newGroupId}), 201
@@ -609,17 +645,23 @@ def joinGroup():
         currentTime = datetime.now()
         startTimeStamp = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S')
         if (currentTime > startTimeStamp):
+            # Remove from database once hike has started
             cursor.execute('DELETE FROM UserGroupMembers WHERE group_id = %s', (groupId,))
             cursor.execute('DELETE FROM UserGroups WHERE group_id = %s', (groupId,))
             mysql.connection.commit()
             cursor.close()
             return jsonify({"message": "Did not join in time"}), 409
 
-        cursor.execute(
-            'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
-            (userId, groupId,)
-        )
-        mysql.connection.commit()
+        try:
+            cursor.execute(
+                'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
+                (userId, groupId,)
+            )
+            mysql.connection.commit()
+        except:
+            cursor.close()
+            return jsonify({"error": "already joined the group"}), 400
+
         cursor.close()
         return jsonify({"message": "Joined group successfully", "group_id": groupId}), 201
 
