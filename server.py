@@ -516,7 +516,7 @@ def getGroups():
 
         # Get All groups or groups based on Trail Id
         cursor = mysql.connection.cursor()
-        groupQuery = 'SELECT * FROM UserGRoups WHERE start_time >= %s AND start_time <= %s'
+        groupQuery = 'SELECT * FROM UserGroups WHERE start_time >= %s AND start_time <= %s'
         if (trailIdInput):
             groupQuery += ' AND trail_id = %s'
             cursor.execute(groupQuery, (startDate, endDate, trailIdInput,))
