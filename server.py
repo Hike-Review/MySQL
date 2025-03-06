@@ -508,10 +508,10 @@ def getGroups():
             return jsonify({"error": "missing start and/or end date"}), 400
 
         try:
-            startDate = datetime.strptime(startDateInput, '%Y-%m-%d')
-            endDate = datetime.strptime(endDateInput, '%Y-%m-%d')
+            startDate = datetime.strptime(startDateInput, '%Y-%m-%d %H:%M:%S')
+            endDate = datetime.strptime(endDateInput, '%Y-%m-%d %H:%M:%S')
         except ValueError:
-            return jsonify({"error": "Invalid date format format. Use 'YYYY-MM-DD'"}), 400    
+            return jsonify({"error": "Invalid date format format used. Use 'YYYY-MM-DD HH:MM:SS'"}), 400    
 
         cursor = mysql.connection.cursor()
         cursor.execute(
@@ -519,7 +519,7 @@ def getGroups():
             'FROM UserGroups ' + 
             'WHERE start_time >= %s ' + 
             'AND start_time <= %s',
-            (startDate.strftime('%Y-%m-%d 00:00:00'), endDate.strftime('%Y-%m-%d 23:59:59'))
+            (startDate, endDate)
         )
         groups = cursor.fetchall()
 
