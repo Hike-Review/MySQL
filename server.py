@@ -589,14 +589,20 @@ def postGroups():
         
         hostUserId = str(hostUser[0])
 
-        # cursor = mysql.connection.cursor()
+        # Insert new group to database
         cursor.execute(
             'INSERT INTO UserGroups (trail_id, created_by, group_host, group_name, group_description, start_time) VALUES (%s, %s, %s, %s, %s, %s)',
             (trailId, hostUserId, hostName, groupName, groupDescription, startTimeStamp)
         )
-        mysql.connection.commit()
-
         newGroupId = cursor.lastrowid
+
+        # Automatically Join Host to the group
+        cursor.execute(
+            'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
+            (hostUserId, newGroupId)
+        )
+
+        mysql.connection.commit()
         cursor.close()
 
         return jsonify({'message': 'Review added successfully', 'groupId': newGroupId}), 201
