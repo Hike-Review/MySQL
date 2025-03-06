@@ -552,7 +552,18 @@ def getGroups():
             trail = cursor.fetchone()
             trailName = str(trail[0])
 
-            groupObj = Group(groupId, str(group[1]), str(group[2]), trailId, str(group[4]), str(group[5]), str(group[6]), str(group[7]), trailName, totalJoinedUsers,  joinedUsers)
+            # Create Group Object
+            groupName = str(group[1])
+            groupDescription = str(group[2])
+            createdByUserId = str(group[4])
+            groupHostUsername = str(group[5])
+            groupCreatedAt = str(group[6])
+            groupStartTime = str(group[7])
+            groupObj = Group(
+                groupId, groupName, groupDescription, trailId, createdByUserId, 
+                groupHostUsername, groupCreatedAt, groupStartTime, trailName, 
+                totalJoinedUsers, joinedUsers
+            )
             groupRecords.append(groupObj)
         
         cursor.close()
