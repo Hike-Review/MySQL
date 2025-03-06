@@ -633,17 +633,23 @@ def joinGroup():
         currentTime = datetime.now()
         startTimeStamp = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S')
         if (currentTime > startTimeStamp):
+            # Remove from database once hike has started
             cursor.execute('DELETE FROM UserGroupMembers WHERE group_id = %s', (groupId,))
             cursor.execute('DELETE FROM UserGroups WHERE group_id = %s', (groupId,))
             mysql.connection.commit()
             cursor.close()
             return jsonify({"message": "Did not join in time"}), 409
 
-        cursor.execute(
-            'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
-            (userId, groupId,)
-        )
-        mysql.connection.commit()
+        try:
+            cursor.execute(
+                'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
+                (userId, groupId,)
+            )
+            mysql.connection.commit()
+        except:
+            cursor.close()
+            return jsonify({"error": "already joined the group"}), 400
+
         cursor.close()
         return jsonify({"message": "Joined group successfully", "group_id": groupId}), 201
 
