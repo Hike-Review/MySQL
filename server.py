@@ -154,20 +154,20 @@ def missingTokenCallback(error):
     return jsonify({'message' : 'Request doesn\'t contain valid token', 'error' : 'authorizationHeader'}), 401
 
 # JWT Block list Check
-@jwt.token_in_blocklist_loader
-def tokenInBlocklistCallback(jwt_header, jwt_data):
-    jti = jwt_data['jti']
-    cur = mysql.connection.cursor()
-    cur.execute(
-        'SELECT jti ' +
-        'FROM TokenBlacklist ' +
-        'WHERE jti = %s' +
-        'LIMIT 1',
-        (jti,)
-    )
-    token = cur.fetchone()
-    cur.close() 
-    return token is not None
+# @jwt.token_in_blocklist_loader
+# def tokenInBlocklistCallback(jwt_header, jwt_data):
+#     jti = jwt_data['jti']
+#     cur = mysql.connection.cursor()
+#     cur.execute(
+#         'SELECT jti ' +
+#         'FROM TokenBlacklist ' +
+#         'WHERE jti = %s' +
+#         'LIMIT 1',
+#         (jti,)
+#     )
+#     token = cur.fetchone()
+#     cur.close() 
+#     return token is not None
 
 # API Endpoints
 @app.route('/')
@@ -321,6 +321,19 @@ def getCurrentIdentity():
             (username,)
         )
         user = cur.fetchone()
+
+        cur.execute(
+            '''
+            SELECT ug.group_name, ug.start_time, h.trail_name
+            FROM UserGroups ug
+            JOIN UserGroupMembers ugm ON ug.group_id = ugm.group_id
+            JOIN Hikes h ON ug.trail_id = h.trail_id
+            JOIN Users u ON u.user_id = ugm.user_id
+            WHERE u.username = %s
+            ''',
+            (username,)
+        )
+        groups = cur.fetchall()
         cur.close()
         
         if (user):
@@ -333,7 +346,15 @@ def getCurrentIdentity():
                         'email': user[2],
                         'created_at': user[3],
                         'favorite_hikes': json.loads(user[4]) if user[4] else []  # Convert JSON string to list
-                    }
+                    },
+                    'groups': [
+                        {
+                            'group_name': g[0],
+                            'start_time': g[1],
+                            'trail_name': g[2]
+                        }
+                        for g in groups
+                    ]
                 }
             ), 200
         else:
@@ -395,11 +416,11 @@ def getHikeData():
             routingPointRecords = [routePoint(float(point[0]), float(point[1])) for point in routePoints]
 
             # Create new hike objects
-            startLat = float(hike[6])
-            startLng = float(hike[7])
-            endLat = float(hike[8])
-            endLng = float(hike[9])
-            hikeObj = Hike(hikeID, str(hike[1]), str(hike[2]), str(hike[3]), str(hike[4]), str(hike[5]), startLat, startLng, endLat, endLng, str(hike[10]), str(hike[11]), str(hike[12]), str(hike[13]), routingPointRecords)
+            startLat = float(hike[7])
+            startLng = float(hike[8])
+            endLat = float(hike[9])
+            endLng = float(hike[10])
+            hikeObj = Hike(hikeID, str(hike[1]), str(hike[3]), str(hike[4]), str(hike[5]), str(hike[6]), startLat, startLng, endLat, endLng, str(hike[11]), str(hike[12]), str(hike[13]), str(hike[14]), routingPointRecords)
             hikeRecords.append(hikeObj)
 
         hikeDictionaryList = [record.toDictionary() for record in hikeRecords]
