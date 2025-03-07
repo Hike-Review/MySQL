@@ -41,7 +41,7 @@ class User:
         }
 
 # Route Points Datastructure
-class routePoint:
+class RoutePoint:
     def __init__(self, lat, lng):
         self.lat = lat
         self.lng = lng
@@ -91,7 +91,7 @@ class Hike:
             'created_at': self.created_at,
             'routing_points': [(point.lat, point.lng) for point in self.routing_points]
         }
-    
+
 # Review Datastructure
 class Review:
     def __init__(self, review_id, trail_id, username, rating, review_text, review_date):
@@ -155,28 +155,12 @@ def invalidTokenCallback(error):
 def missingTokenCallback(error):
     return jsonify({'message' : 'Request doesn\'t contain valid token', 'error' : 'authorizationHeader'}), 401
 
-# JWT Block list Check
-# @jwt.token_in_blocklist_loader
-# def tokenInBlocklistCallback(jwt_header, jwt_data):
-#     jti = jwt_data['jti']
-#     cur = mysql.connection.cursor()
-#     cur.execute(
-#         'SELECT jti ' +
-#         'FROM TokenBlacklist ' +
-#         'WHERE jti = %s' +
-#         'LIMIT 1',
-#         (jti,)
-#     )
-#     token = cur.fetchone()
-#     cur.close() 
-#     return token is not None
-
 # API Endpoints
 @app.route('/')
 def home():
     return 'Hikereview API'
 
-@app.route('/auth/register', methods=['POST'])
+@app.route('/auth/register', methods = ['POST'])
 def register():
     if (request.method == 'POST'):
         data = request.json
@@ -190,10 +174,12 @@ def register():
 
             # Check if username is already in database
             cursor.execute(
-                'SELECT username ' +
-                'FROM Users ' +
-                'WHERE username = %s ' + 
-                'LIMIT 1',
+                '''
+                SELECT username
+                FROM Users
+                WHERE username = %s
+                LIMIT 1
+                ''',
                 (username,)
             )
             existingUsername = cursor.fetchall()
@@ -203,10 +189,12 @@ def register():
 
             # Check if email is already in database
             cursor.execute(
-                'SELECT email ' +  
-                'FROM Users ' +
-                'WHERE email = %s' +
-                'LIMIT 1',
+                '''
+                SELECT email
+                FROM Users
+                WHERE email = %s
+                LIMIT 1
+                ''',
                 (email,)
             )
             existingUserEmail = cursor.fetchall()
@@ -216,25 +204,22 @@ def register():
 
             # Insert new user
             cursor.execute(
-                'INSERT INTO Users ' +  
-                '(username, email, password_hash) ' +
-                'VALUES (%s, %s, %s)',
-                (username, email, hashedPassword)
+                '''
+                INSERT INTO Users
+                (username, email, password_hash)
+                VALUES (%s, %s, %s)
+                ''',
+                (username, email, hashedPassword,)
             )
             mysql.connection.commit()
             cursor.close()
-            return jsonify(
-                {
-                    'message' : 'User created successfully',
-                    'username' : username
-                }
-            ), 201
+            return jsonify({'message' : 'User created successfully', 'username' : username}), 201
 
         except Exception as e:
-            print(e)
+            cursor.close()
             return jsonify({'error': str(e)}), 500
 
-@app.route('/auth/login', methods=['POST'])
+@app.route('/auth/login', methods = ['POST'])
 def login():
     if (request.method == 'POST'):
         data = request.json
@@ -242,22 +227,24 @@ def login():
         email = data['email']
         password = data['password']
 
-        cur = mysql.connection.cursor()
-        cur.execute(
-            'SELECT username, email, password_hash ' +
-            'FROM Users ' +
-            'WHERE username = %s' +
-            'OR email = %s' +
-            'LIMIT 1',
-            (username, email)
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            '''
+            SELECT username, email, password_hash
+            FROM Users
+            WHERE username = %s
+            OR email = %s
+            LIMIT 1
+            ''',
+            (username, email,)
         )
-        user = cur.fetchone()
-        cur.close()
+        user = cursor.fetchone()
+        cursor.close()
 
         # Check if Username or email doesn't exist
         if (user == None):
             return jsonify({'message': 'Invalid username or email'}), 400
-        
+
         username = user[0]
         hashedPassword = user[2]
 
@@ -265,7 +252,7 @@ def login():
         if (check_password_hash(hashedPassword, password)):
             accessToken = create_access_token(identity = username)
             refreshToken = create_refresh_token(identity = username)
-            
+
             return jsonify(
                 {
                     'message' : 'You are now logged in!',
@@ -279,52 +266,34 @@ def login():
         else:
             return jsonify({'message': 'Invalid credentials'}), 401
 
-# @app.route('/auth/logout', methods=['GET'])
-# @jwt_required(verify_type = False)
-# def logout():
-#     if (request.method == 'GET'):
-#         claims = get_jwt()
-#         jti = claims.get('jti')
-#         tokenType = claims.get('type')
-
-#         # Insert token into databas blacklist
-#         cursor = mysql.connection.cursor()
-#         cursor.execute(
-#             'INSERT INTO tokenblacklist ' +  
-#             '(jti) ' +
-#             'VALUES (%s)',
-#             (jti,)
-#         )
-#         mysql.connection.commit()
-#         cursor.close()
-#         return jsonify({'message' : 'Logout successful', 'token_revoked' : f'{tokenType} revoked'}), 200
-
-@app.route('/auth/refresh', methods=['GET'])
-@jwt_required(refresh=True)
+@app.route('/auth/refresh', methods = ['GET'])
+@jwt_required(refresh = True)
 def refreshToken():
     if (request.method == 'GET'):
         username = get_jwt_identity()
         newAccessToken = create_access_token(identity = username)
         return jsonify({'access' : newAccessToken})
 
-@app.route('/auth/identity', methods=['GET'])
+@app.route('/auth/identity', methods = ['GET'])
 @jwt_required()
 def getCurrentIdentity():
     claims = get_jwt()
     username = claims.get('sub')
-    cur = mysql.connection.cursor()
 
     if (request.method == 'GET'):
-        cur.execute(
-            'SELECT user_id, username, email, created_at, favorite_hikes ' +
-            'FROM Users ' +
-            'WHERE username = %s' +
-            'LIMIT 1',
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            '''
+            SELECT user_id, username, email, created_at, favorite_hikes
+            FROM Users
+            WHERE username = %s
+            LIMIT 1
+            ''',
             (username,)
         )
-        user = cur.fetchone()
+        user = cursor.fetchone()
 
-        cur.execute(
+        cursor.execute(
             '''
             SELECT ug.group_name, ug.start_time, h.trail_name
             FROM UserGroups ug
@@ -335,9 +304,9 @@ def getCurrentIdentity():
             ''',
             (username,)
         )
-        groups = cur.fetchall()
-        cur.close()
-        
+        groups = cursor.fetchall()
+        cursor.close()
+
         if (user):
             return jsonify(
                 {
@@ -347,7 +316,7 @@ def getCurrentIdentity():
                         'username': user[1],
                         'email': user[2],
                         'created_at': user[3],
-                        'favorite_hikes': json.loads(user[4]) if user[4] else []  # Convert JSON string to list
+                        'favorite_hikes': json.loads(user[4]) if user[4] else []
                     },
                     'groups': [
                         {
@@ -362,62 +331,72 @@ def getCurrentIdentity():
         else:
             return jsonify({'message': 'no login detected'}), 400
 
-@app.route('/favorite/hikes', methods=['POST'])
+@app.route('/favorite/hikes', methods = ['POST'])
 @jwt_required()
 def postFavoriteHikes():
     username = get_jwt_identity()
-    cur = mysql.connection.cursor()
 
-    if request.method == 'POST':
+    if (request.method == 'POST'):
         data = request.get_json()
-        favorite_hikes = data.get('favorite_hikes', [])  # Default to empty list if not provided
+
+        # Default to empty list if not provided
+        favorite_hikes = data.get('favorite_hikes', [])
 
         # Check for valid JSON array
         favorite_hikes_json = json.dumps(favorite_hikes)
 
         # Update the user's favorite hikes in the database
-        cur.execute(
-            'UPDATE Users SET favorite_hikes = %s WHERE username = %s',
-            (favorite_hikes_json, username)
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            '''
+            UPDATE Users
+            SET favorite_hikes = %s
+            WHERE username = %s
+            ''',
+            (favorite_hikes_json, username,)
         )
         mysql.connection.commit()
-        cur.close()
+        cursor.close()
 
         return jsonify({'message': 'Favorite hikes updated successfully', 'favorite_hikes': favorite_hikes}), 200
 
-@app.route('/hikes', methods=['GET'])
+@app.route('/hikes', methods = ['GET'])
 def getHikeData():
     if (request.method == 'GET'):
-        difficulty = request.args.get('difficulty', default='', type=str)
-        cursor = mysql.connection.cursor()
+        difficulty = request.args.get('difficulty', default = '', type = str)
 
-        # Display all hikes or based on difficulty  
-        hikeQuery = 'SELECT * FROM Hikes'
+        # Get all hikes or based on difficulty
+        cursor = mysql.connection.cursor()
+        hikeQuery = '''
+            SELECT *
+            FROM Hikes
+        '''
         if (difficulty):
-            hikeQuery +=  ' WHERE difficulty = %s'
+            hikeQuery += 'WHERE difficulty = %s'
             cursor.execute(hikeQuery, (difficulty,))
         else:
             cursor.execute(hikeQuery)
-
         hikes = cursor.fetchall()
 
-        # Display Each Hike
+        # Collect all hikes
         hikeRecords = []
         for hike in hikes:
             hikeID = str(hike[0])
 
             # Collect all routing nodes for this hike
             cursor.execute(
-                'SELECT latitude, longitude ' +
-                'FROM RoutePoints ' +
-                'WHERE trail_id = %s ' + 
-                'ORDER BY point_order',
+                '''
+                SELECT latitude, longitude
+                FROM RoutePoints
+                WHERE trail_id = %s
+                ORDER BY point_order
+                ''',
                 (hikeID,)
             )
             routePoints = cursor.fetchall()
-            
+
             # Create list of point objects for routing nodes
-            routingPointRecords = [routePoint(float(point[0]), float(point[1])) for point in routePoints]
+            routingPointRecords = [RoutePoint(float(point[0]), float(point[1])) for point in routePoints]
 
             # Create new hike objects
             trailName = str(hike[1])
@@ -435,7 +414,7 @@ def getHikeData():
             trailCreatorUserId = str(hike[13])
             trailCreatedAt = str(hike[14])
             hikeObj = Hike(
-                hikeID, trailName, trailImage, trailDifficulty, trailRating, trailDistance, 
+                hikeID, trailName, trailImage, trailDifficulty, trailRating, trailDistance,
                 trailDuration, startLat, startLng, endLat, endLng, trailTags, trailDescription,
                 trailCreatorUserId, trailCreatedAt, routingPointRecords
             )
@@ -445,31 +424,50 @@ def getHikeData():
         cursor.close()
         return jsonify(hikeDictionaryList), 200
 
-@app.route('/reviews', methods=['GET'])
+@app.route('/reviews', methods = ['GET'])
 def getReviews():
     if (request.method == 'GET'):
-        trail_id = request.args.get('trail_id', type=int)
-        if not trail_id:
+        trail_id = request.args.get('trail_id', type = int)
+
+        # Check for trail id
+        if (trail_id == None):
             return jsonify({'error': 'trail_id parameter is required'}), 400
 
+        # Get list of reviews from database
         cursor = mysql.connection.cursor()
-        cursor.execute('SELECT * FROM Reviews WHERE trail_id = %s', (trail_id,))
+        cursor.execute(
+            '''
+            SELECT *
+            FROM Reviews
+            WHERE trail_id = %s
+            ''',
+            (trail_id,)
+        )
         reviews = cursor.fetchall()
 
-        reviewRecords = [
-            Review(str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5]))
-            for r in reviews
-        ]
+        # Collect all reviews
+        reviewRecords = []
+        for review in reviews:
+            # Create review object
+            reviewId = str(review[0])
+            trailId = str(review[1])
+            username = str(review[2])
+            rating = str(review[3])
+            reviewText = str(review[4])
+            reviewDate = str(review[5])
+            reviewObj = Review(reviewId, trailId, username, rating, reviewText, reviewDate)
+            reviewRecords.append(reviewObj)
 
         cursor.close()
         return jsonify([review.toDictionary() for review in reviewRecords])
 
-@app.route('/reviews', methods=['POST'])
+@app.route('/reviews', methods = ['POST'])
 @jwt_required()
 def postReviews():
     if (request.method == 'POST'):
         data = request.json
 
+        # Check for all required parameters
         required_fields = ['trail_id', 'username', 'rating', 'review_text']
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
@@ -479,13 +477,18 @@ def postReviews():
         rating = data['rating']
         review_text = data['review_text']
 
+        # Check for valid rating
         if not (1 <= rating <= 5):
             return jsonify({'error': 'Rating must be between 1 and 5'}), 400
 
+        # Insert review data into database
         cursor = mysql.connection.cursor()
         cursor.execute(
-            'INSERT INTO Reviews (trail_id, username, rating, review_text) VALUES (%s, %s, %s, %s)',
-            (trail_id, username, rating, review_text)
+            '''
+            INSERT INTO Reviews (trail_id, username, rating, review_text)
+            VALUES (%s, %s, %s, %s)
+            ''',
+            (trail_id, username, rating, review_text,)
         )
         mysql.connection.commit()
 
@@ -494,16 +497,18 @@ def postReviews():
 
         return jsonify({'message': 'Review added successfully', 'review_id': new_id}), 201
 
-@app.route('/groups', methods=['GET'])
+@app.route('/groups', methods = ['GET'])
 def getGroups():
     if (request.method == 'GET'):
-        trailIdInput = request.args.get('trail_id', default='', type = str)
+        trailIdInput = request.args.get('trail_id', default = '', type = str)
         startDateInput = request.args.get('start_date_range', type = str)
         endDateInput = request.args.get('end_date_range', type = str)
 
+        # Check for required parameters
         if (startDateInput == None or endDateInput == None):
             return jsonify({"error": "missing start and/or end date"}), 400
 
+        #Check for valid date timestamps
         try:
             startDate = datetime.strptime(startDateInput, '%Y-%m-%d %H:%M:%S')
             endDate = datetime.strptime(endDateInput, '%Y-%m-%d %H:%M:%S')
@@ -512,9 +517,14 @@ def getGroups():
 
         # Get All groups or groups based on Trail Id
         cursor = mysql.connection.cursor()
-        groupQuery = 'SELECT * FROM UserGroups WHERE start_time >= %s AND start_time <= %s'
+        groupQuery = '''
+            SELECT *
+            FROM UserGroups
+            WHERE start_time >= %s
+            AND start_time <= %s
+        '''
         if (trailIdInput):
-            groupQuery += ' AND trail_id = %s'
+            groupQuery += 'AND trail_id = %s'
             cursor.execute(groupQuery, (startDate, endDate, trailIdInput,))
         else:
             cursor.execute(groupQuery, (startDate, endDate,))
@@ -528,11 +538,13 @@ def getGroups():
             groupId = str(group[0])
             trailId = str(group[3])
 
-            # Get group member user_id's
+            # Get group member user_ids
             cursor.execute(
-                'SELECT user_id ' +
-                'FROM UserGroupMembers ' +
-                'WHERE group_id = %s ',
+                '''
+                SELECT user_id
+                FROM UserGroupMembers
+                WHERE group_id = %s
+                ''',
                 (groupId,)
             )
             usersInGroup = cursor.fetchall()
@@ -541,9 +553,11 @@ def getGroups():
 
             # Get trail name
             cursor.execute(
-                'SELECT trail_name ' + 
-                'FROM Hikes ' + 
-                'WHERE trail_id = %s',
+                '''
+                SELECT trail_name
+                FROM Hikes
+                WHERE trail_id = %s
+                ''',
                 (trailId,)
             )
             trail = cursor.fetchone()
@@ -557,21 +571,22 @@ def getGroups():
             groupCreatedAt = str(group[6])
             groupStartTime = str(group[7])
             groupObj = Group(
-                groupId, groupName, groupDescription, trailId, createdByUserId, 
-                groupHostUsername, groupCreatedAt, groupStartTime, trailName, 
+                groupId, groupName, groupDescription, trailId, createdByUserId,
+                groupHostUsername, groupCreatedAt, groupStartTime, trailName,
                 totalJoinedUsers, joinedUsers
             )
             groupRecords.append(groupObj)
-        
-        cursor.close()
-        return jsonify([group.toDictionary() for group in groupRecords])
 
-@app.route('/groups', methods=['POST'])
+        cursor.close()
+        return jsonify([group.toDictionary() for group in groupRecords]), 200
+
+@app.route('/groups', methods = ['POST'])
 @jwt_required()
 def postGroups():
     if (request.method == 'POST'):
         data = request.json
 
+        # Check for all required parameters
         required_fields = ['trail_id', 'group_host', 'group_name', 'group_description', 'start_time']
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
@@ -581,7 +596,7 @@ def postGroups():
         groupName = data['group_name']
         groupDescription = data['group_description']
         startTimeInput = data['start_time']
-        
+
         # Extract and validate start time
         try:
             startTimeStamp = datetime.strptime(startTimeInput, '%Y-%m-%d %H:%M:%S')
@@ -590,24 +605,38 @@ def postGroups():
 
         # Get id of the user created
         cursor = mysql.connection.cursor()
-        cursor.execute('SELECT user_id FROM Users WHERE username = %s', (hostName,))
+        cursor.execute(
+            '''
+            SELECT user_id
+            FROM Users
+            WHERE username = %s
+            ''',
+            (hostName,)
+        )
         hostUser = cursor.fetchone()
         if (hostUser == None):
             return jsonify({"error": "Invalid user posting to database."}), 400
-        
+
         hostUserId = str(hostUser[0])
 
         # Insert new group to database
         cursor.execute(
-            'INSERT INTO UserGroups (trail_id, created_by, group_host, group_name, group_description, start_time) VALUES (%s, %s, %s, %s, %s, %s)',
-            (trailId, hostUserId, hostName, groupName, groupDescription, startTimeStamp)
+            '''
+            INSERT INTO UserGroups (trail_id, created_by, group_host, group_name, group_description, start_time)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ''',
+            (trailId, hostUserId, hostName, groupName, groupDescription, startTimeStamp,)
         )
         newGroupId = cursor.lastrowid
 
         # Automatically Join Host to the group
         cursor.execute(
-            'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
-            (hostUserId, newGroupId)
+            '''
+            INSERT INTO
+            UserGroupMembers (user_id, group_id)
+            VALUES (%s, %s)
+            ''',
+            (hostUserId, newGroupId,)
         )
 
         mysql.connection.commit()
@@ -615,12 +644,13 @@ def postGroups():
 
         return jsonify({'message': 'Review added successfully', 'groupId': newGroupId}), 201
 
-@app.route('/join/group', methods=['POST'])
+@app.route('/join/group', methods = ['POST'])
 @jwt_required()
 def joinGroup():
     if (request.method == 'POST'):
         data = request.json
 
+        # Check for all required parameters
         required_fields = ['group_id', 'user_id']
         if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
@@ -630,7 +660,13 @@ def joinGroup():
         
         # Get group object
         cursor = mysql.connection.cursor()
-        cursor.execute('SELECT trail_id, start_time FROM UserGroups WHERE group_id = %s', (groupId,))
+        cursor.execute(
+            '''
+            SELECT trail_id, start_time
+            FROM UserGroups WHERE group_id = %s
+            ''',
+            (groupId,)
+        )
         group = cursor.fetchone()
         if (group == None):
             return jsonify({"error": "invalid group_id, group does not exist"}), 400
@@ -642,19 +678,35 @@ def joinGroup():
         startTimeStamp = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S')
         if (currentTime > startTimeStamp):
             # Remove from database once hike has started
-            cursor.execute('DELETE FROM UserGroupMembers WHERE group_id = %s', (groupId,))
-            cursor.execute('DELETE FROM UserGroups WHERE group_id = %s', (groupId,))
+            cursor.execute(
+                '''
+                DELETE FROM UserGroupMembers
+                WHERE group_id = %s
+                ''',
+                (groupId,)
+            )
+            cursor.execute(
+                '''
+                DELETE FROM UserGroups
+                WHERE group_id = %s
+                ''',
+                (groupId,)
+            )
             mysql.connection.commit()
             cursor.close()
             return jsonify({"message": "Did not join in time"}), 409
 
+        # Attempt to join into group
         try:
             cursor.execute(
-                'INSERT INTO UserGroupMembers (user_id, group_id) VALUES (%s, %s)',
+                '''
+                INSERT INTO UserGroupMembers
+                (user_id, group_id) VALUES (%s, %s)
+                ''',
                 (userId, groupId,)
             )
             mysql.connection.commit()
-        except:
+        except Exception as e:
             cursor.close()
             return jsonify({"error": "already joined the group"}), 400
 
@@ -662,5 +714,6 @@ def joinGroup():
         return jsonify({"message": "Joined group successfully", "group_id": groupId}), 201
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))  # Default to 8080 if not set
+    # Default to port 8080 if not set
+    port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
