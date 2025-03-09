@@ -26,7 +26,7 @@ COPY . /app/
 EXPOSE 8080
 
 # Set environment variable for Flask
-ENV FLASK_APP=server.py
+ENV FLASK_APP=server/run.py
 
 # Run the Flask application
 CMD ["flask", "run", "--host", "0.0.0.0", "--port", "8080"]
