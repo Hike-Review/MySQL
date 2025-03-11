@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from app.models import Group
-from app import mysql
+from server.app.models import Group
+from server.app import mysql
 
 groups_bp = Blueprint('groups', __name__)
 

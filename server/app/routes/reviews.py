@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Review
-from app import mysql
+from server.app.models import Review
+from server.app import mysql
 
 reviews_bp = Blueprint('reviews', __name__)
 

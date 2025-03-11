@@ -1,8 +1,8 @@
 import json
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import Hike, RoutePoint
-from app import mysql
+from server.app.models import Hike, RoutePoint
+from server.app import mysql
 
 hikes_bp = Blueprint('hikes', __name__)
 
