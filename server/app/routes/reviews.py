@@ -21,6 +21,7 @@ def getReviews():
             SELECT *
             FROM Reviews
             WHERE trail_id = %s
+            ORDER BY review_date DESC
             ''',
             (trail_id,)
         )
