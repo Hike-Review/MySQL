@@ -33,9 +33,13 @@ def getGroups():
             AND start_time <= %s
         '''
         if (trailIdInput):
-            groupQuery += 'AND trail_id = %s'
+            groupQuery += '''
+                AND trail_id = %s
+                ORDER BY start_time ASC
+            '''
             cursor.execute(groupQuery, (startDate, endDate, trailIdInput,))
         else:
+            groupQuery += 'ORDER BY start_time ASC'
             cursor.execute(groupQuery, (startDate, endDate,))
         groups = cursor.fetchall()
 
