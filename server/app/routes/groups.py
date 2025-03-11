@@ -221,7 +221,7 @@ def joinGroup():
             mysql.connection.commit()
         except Exception as e:
             cursor.close()
-            return jsonify({"error": "already joined the group"}), 400
+            return jsonify({"message": "already joined the group"}), 200
 
         cursor.close()
         return jsonify({"message": "Joined group successfully", "group_id": groupId}), 201
