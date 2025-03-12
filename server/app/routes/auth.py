@@ -2,7 +2,7 @@ import json
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, get_jwt, jwt_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from app import mysql
+from server.app import mysql
 
 auth_bp = Blueprint('auth', __name__)
 
