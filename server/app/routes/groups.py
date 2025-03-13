@@ -1,12 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from zoneinfo import ZoneInfo
 from server.app.models import Group
 from server.app import mysql
 
 groups_bp = Blueprint('groups', __name__)
-pst = ZoneInfo("America/Los_Angeles")
 
 @groups_bp.route('/groups', methods = ['GET'])
 def getGroups():
@@ -21,8 +19,8 @@ def getGroups():
 
         #Check for valid date timestamps
         try:
-            startDate = datetime.strptime(startDateInput, '%Y-%m-%d %H:%M:%S').replace(tzinfo=pst)
-            endDate = datetime.strptime(endDateInput, '%Y-%m-%d %H:%M:%S').replace(tzinfo=pst)
+            startDate = datetime.strptime(startDateInput, '%Y-%m-%d %H:%M:%S')
+            endDate = datetime.strptime(endDateInput, '%Y-%m-%d %H:%M:%S')
         except ValueError:
             return jsonify({"error": "Invalid date format format used. Use 'YYYY-MM-DD HH:MM:SS'"}), 400
 
@@ -114,7 +112,7 @@ def postGroups():
 
         # Extract and validate start time
         try:
-            startTimeStamp = datetime.strptime(startTimeInput, '%Y-%m-%d %H:%M:%S').replace(tzinfo=pst)
+            startTimeStamp = datetime.strptime(startTimeInput, '%Y-%m-%d %H:%M:%S')
         except ValueError:
             return jsonify({"error": "Invalid startTimeStamp format. Use 'YYYY-MM-DD HH:MM:SS'"}), 400
 
@@ -186,10 +184,11 @@ def joinGroup():
         if (group == None):
             return jsonify({"error": "invalid group_id, group does not exist"}), 400
 
-        # Validate if joining before start time
-        currentTime = datetime.now().astimezone(pst)
-        startTimeStamp = group[1].astimezone(pst)
+        startTime = str(group[1])
 
+        # Validate if joining before start time
+        currentTime = datetime.now()
+        startTimeStamp = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S')
         if (currentTime > startTimeStamp):
             # Remove from database once hike has started
             cursor.execute(
