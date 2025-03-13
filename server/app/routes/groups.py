@@ -187,7 +187,7 @@ def joinGroup():
         startTime = str(group[1])
 
         # Validate if joining before start time
-        currentTime = datetime.now()
+        currentTime = datetime.utcnow()
         startTimeStamp = datetime.strptime(startTime, '%Y-%m-%d %H:%M:%S')
         if (currentTime > startTimeStamp):
             # Remove from database once hike has started
